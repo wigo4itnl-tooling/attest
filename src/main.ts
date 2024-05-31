@@ -39,6 +39,7 @@ export type RunInputs = SubjectInputs &
     githubToken: string
     showSummary: boolean
     privateSigning: boolean
+    skipAttestationStore: boolean
   }
 
 /* istanbul ignore next */
@@ -99,7 +100,8 @@ export async function run(inputs: RunInputs): Promise<void> {
       pushToRegistry: inputs.pushToRegistry,
       createStorageRecord: inputs.createStorageRecord,
       subjectVersion: inputs.subjectVersion,
-      githubToken: inputs.githubToken
+      githubToken: inputs.githubToken,
+      skipAttestationStore: inputs.skipAttestationStore
     })
 
     logAttestation(subjects, att, sigstoreInstance)

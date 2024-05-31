@@ -67,7 +67,8 @@ describe('index', () => {
       pushToRegistry: false,
       createStorageRecord: true,
       showSummary: true,
-      privateSigning: false
+      privateSigning: false,
+      skipAttestationStore: false
     })
   })
 })

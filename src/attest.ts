@@ -28,6 +28,7 @@ export const createAttestation = async (
     createStorageRecord: boolean
     subjectVersion?: string
     githubToken: string
+    skipAttestationStore?: boolean
   }
 ): Promise<AttestResult> => {
   // Sign provenance w/ Sigstore
@@ -36,7 +37,8 @@ export const createAttestation = async (
     predicateType: predicate.type,
     predicate: predicate.params,
     sigstore: opts.sigstoreInstance,
-    token: opts.githubToken
+    token: opts.githubToken,
+    skipWrite: opts.skipAttestationStore
   })
 
   const result: AttestResult = attestation
