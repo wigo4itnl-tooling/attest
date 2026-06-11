@@ -78231,12 +78231,9 @@ function parseCommaParts(str) {
   return parts;
 }
 
-function expandTop(str, options) {
+function expandTop(str) {
   if (!str)
     return [];
-
-  options = options || {};
-  var max = options.max == null ? Infinity : options.max;
 
   // I don't know why Bash 4.3 does this, but it does.
   // Anything starting with {} will have the first two bytes preserved
@@ -78248,7 +78245,7 @@ function expandTop(str, options) {
     str = '\\{\\}' + str.substr(2);
   }
 
-  return expand(escapeBraces(str), max, true).map(unescapeBraces);
+  return expand(escapeBraces(str), true).map(unescapeBraces);
 }
 
 function identity(e) {
@@ -78269,7 +78266,7 @@ function gte(i, y) {
   return i >= y;
 }
 
-function expand(str, max, isTop) {
+function expand(str, isTop) {
   var expansions = [];
 
   var m = balanced('{', '}', str);
@@ -78283,7 +78280,7 @@ function expand(str, max, isTop) {
     // {a},b}
     if (m.post.match(/,(?!,).*\}/)) {
       str = m.pre + '{' + m.body + escClose + m.post;
-      return expand(str, max, true);
+      return expand(str);
     }
     return [str];
   }
@@ -78295,10 +78292,10 @@ function expand(str, max, isTop) {
     n = parseCommaParts(m.body);
     if (n.length === 1) {
       // x{{a,b}}y ==> x{a}y x{b}y
-      n = expand(n[0], max, false).map(embrace);
+      n = expand(n[0], false).map(embrace);
       if (n.length === 1) {
         var post = m.post.length
-          ? expand(m.post, max, false)
+          ? expand(m.post, false)
           : [''];
         return post.map(function(p) {
           return m.pre + n[0] + p;
@@ -78313,7 +78310,7 @@ function expand(str, max, isTop) {
   // no need to expand pre, since it is guaranteed to be free of brace-sets
   var pre = m.pre;
   var post = m.post.length
-    ? expand(m.post, max, false)
+    ? expand(m.post, false)
     : [''];
 
   var N;
@@ -78323,7 +78320,7 @@ function expand(str, max, isTop) {
     var y = numeric(n[1]);
     var width = Math.max(n[0].length, n[1].length)
     var incr = n.length == 3
-      ? Math.max(Math.abs(numeric(n[2])), 1)
+      ? Math.abs(numeric(n[2]))
       : 1;
     var test = lte;
     var reverse = y < x;
@@ -78357,11 +78354,11 @@ function expand(str, max, isTop) {
       N.push(c);
     }
   } else {
-    N = concatMap(n, function(el) { return expand(el, max, false) });
+    N = concatMap(n, function(el) { return expand(el, false) });
   }
 
   for (var j = 0; j < N.length; j++) {
-    for (var k = 0; k < post.length && expansions.length < max; k++) {
+    for (var k = 0; k < post.length; k++) {
       var expansion = pre + N[j] + post[k];
       if (!isTop || isSequence || expansion)
         expansions.push(expansion);
@@ -78370,6 +78367,7 @@ function expand(str, max, isTop) {
 
   return expansions;
 }
+
 
 
 /***/ }),
@@ -81470,12 +81468,9 @@ function parseCommaParts(str) {
   return parts;
 }
 
-function expandTop(str, options) {
+function expandTop(str) {
   if (!str)
     return [];
-
-  options = options || {};
-  var max = options.max == null ? Infinity : options.max;
 
   // I don't know why Bash 4.3 does this, but it does.
   // Anything starting with {} will have the first two bytes preserved
@@ -81487,7 +81482,7 @@ function expandTop(str, options) {
     str = '\\{\\}' + str.substr(2);
   }
 
-  return expand(escapeBraces(str), max, true).map(unescapeBraces);
+  return expand(escapeBraces(str), true).map(unescapeBraces);
 }
 
 function embrace(str) {
@@ -81504,7 +81499,7 @@ function gte(i, y) {
   return i >= y;
 }
 
-function expand(str, max, isTop) {
+function expand(str, isTop) {
   var expansions = [];
 
   var m = balanced('{', '}', str);
@@ -81513,11 +81508,11 @@ function expand(str, max, isTop) {
   // no need to expand pre, since it is guaranteed to be free of brace-sets
   var pre = m.pre;
   var post = m.post.length
-    ? expand(m.post, max, false)
+    ? expand(m.post, false)
     : [''];
 
   if (/\$$/.test(m.pre)) {    
-    for (var k = 0; k < post.length && k < max; k++) {
+    for (var k = 0; k < post.length; k++) {
       var expansion = pre+ '{' + m.body + '}' + post[k];
       expansions.push(expansion);
     }
@@ -81530,7 +81525,7 @@ function expand(str, max, isTop) {
       // {a},b}
       if (m.post.match(/,(?!,).*\}/)) {
         str = m.pre + '{' + m.body + escClose + m.post;
-        return expand(str, max, true);
+        return expand(str);
       }
       return [str];
     }
@@ -81542,7 +81537,7 @@ function expand(str, max, isTop) {
       n = parseCommaParts(m.body);
       if (n.length === 1) {
         // x{{a,b}}y ==> x{a}y x{b}y
-        n = expand(n[0], max, false).map(embrace);
+        n = expand(n[0], false).map(embrace);
         if (n.length === 1) {
           return post.map(function(p) {
             return m.pre + n[0] + p;
@@ -81560,7 +81555,7 @@ function expand(str, max, isTop) {
       var y = numeric(n[1]);
       var width = Math.max(n[0].length, n[1].length)
       var incr = n.length == 3
-        ? Math.max(Math.abs(numeric(n[2])), 1)
+        ? Math.abs(numeric(n[2]))
         : 1;
       var test = lte;
       var reverse = y < x;
@@ -81597,12 +81592,12 @@ function expand(str, max, isTop) {
       N = [];
 
       for (var j = 0; j < n.length; j++) {
-        N.push.apply(N, expand(n[j], max, false));
+        N.push.apply(N, expand(n[j], false));
       }
     }
 
     for (var j = 0; j < N.length; j++) {
-      for (var k = 0; k < post.length && expansions.length < max; k++) {
+      for (var k = 0; k < post.length; k++) {
         var expansion = pre + N[j] + post[k];
         if (!isTop || isSequence || expansion)
           expansions.push(expansion);
@@ -81612,6 +81607,7 @@ function expand(str, max, isTop) {
 
   return expansions;
 }
+
 
 
 /***/ }),
@@ -86118,17 +86114,15 @@ exports.AddressError = AddressError;
 /***/ }),
 
 /***/ 45864:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+/***/ ((__unused_webpack_module, exports) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.isInSubnet = isInSubnet;
 exports.isCorrect = isCorrect;
-exports.prefixLengthFromMask = prefixLengthFromMask;
 exports.numberToPaddedHex = numberToPaddedHex;
 exports.stringToPaddedHex = stringToPaddedHex;
 exports.testBit = testBit;
-const address_error_1 = __nccwpck_require__(68850);
 function isInSubnet(address) {
     if (this.subnetMask < address.subnetMask) {
         return false;
@@ -86148,25 +86142,6 @@ function isCorrect(defaultBits) {
         }
         return this.parsedSubnet === String(this.subnetMask);
     };
-}
-/**
- * Returns the prefix length (number of leading 1 bits) of a contiguous
- * subnet mask. Throws `AddressError` if the mask is non-contiguous (e.g.
- * `255.0.255.0`).
- */
-function prefixLengthFromMask(value, totalBits) {
-    const binary = value.toString(2).padStart(totalBits, '0');
-    if (binary.length > totalBits) {
-        throw new address_error_1.AddressError('Invalid subnet mask.');
-    }
-    const firstZero = binary.indexOf('0');
-    if (firstZero === -1) {
-        return totalBits;
-    }
-    if (binary.slice(firstZero).includes('1')) {
-        throw new address_error_1.AddressError('Invalid subnet mask.');
-    }
-    return firstZero;
 }
 function numberToPaddedHex(number) {
     return number.toString(16).padStart(2, '0');
@@ -86264,9 +86239,9 @@ exports.Address4 = void 0;
 const common = __importStar(__nccwpck_require__(45864));
 const constants = __importStar(__nccwpck_require__(66437));
 const address_error_1 = __nccwpck_require__(68850);
-const isCorrect4 = common.isCorrect(constants.BITS);
 /**
  * Represents an IPv4 address
+ * @class Address4
  * @param {string} address - An IPv4 address string
  */
 class Address4 {
@@ -86279,11 +86254,15 @@ class Address4 {
         this.v4 = true;
         /**
          * Returns true if the address is correct, false otherwise
+         * @memberof Address4
+         * @instance
          * @returns {Boolean}
          */
-        this.isCorrect = isCorrect4;
+        this.isCorrect = common.isCorrect(constants.BITS);
         /**
          * Returns true if the given address is in the subnet of the current address
+         * @memberof Address4
+         * @instance
          * @returns {boolean}
          */
         this.isInSubnet = common.isInSubnet;
@@ -86301,13 +86280,6 @@ class Address4 {
         this.addressMinusSuffix = address;
         this.parsedAddress = this.parse(address);
     }
-    /**
-     * Returns true if the given string is a valid IPv4 address (with optional
-     * CIDR subnet), false otherwise. Host bits in the subnet portion are
-     * allowed (e.g. `192.168.1.5/24` is valid); for strict network-address
-     * validation compare `correctForm()` to `startAddress().correctForm()`,
-     * or use `networkForm()`.
-     */
     static isValid(address) {
         try {
             // eslint-disable-next-line no-new
@@ -86318,11 +86290,8 @@ class Address4 {
             return false;
         }
     }
-    /**
-     * Parses an IPv4 address string into its four octet groups and stores the
-     * result on `this.parsedAddress`. Called automatically by the constructor;
-     * you typically don't need to call it directly. Throws `AddressError` if
-     * the input is not a valid IPv4 address.
+    /*
+     * Parses a v4 address
      */
     parse(address) {
         const groups = address.split('.');
@@ -86332,110 +86301,45 @@ class Address4 {
         return groups;
     }
     /**
-     * Returns the address in correct form: octets joined with `.` and any
-     * leading zeros stripped (e.g. `192.168.1.1`). For IPv4 this matches the
-     * canonical dotted-decimal representation.
+     * Returns the correct form of an address
+     * @memberof Address4
+     * @instance
+     * @returns {String}
      */
     correctForm() {
         return this.parsedAddress.map((part) => parseInt(part, 10)).join('.');
     }
     /**
-     * Construct an `Address4` from an address and a dotted-decimal subnet
-     * mask given as separate strings (e.g. as returned by Node's
-     * `os.networkInterfaces()`). Throws `AddressError` if the mask is
-     * non-contiguous (e.g. `255.0.255.0`).
-     * @example
-     * var address = Address4.fromAddressAndMask('192.168.1.1', '255.255.255.0');
-     * address.subnetMask; // 24
-     */
-    static fromAddressAndMask(address, mask) {
-        const bits = common.prefixLengthFromMask(new Address4(mask).bigInt(), constants.BITS);
-        return new Address4(`${address}/${bits}`);
-    }
-    /**
-     * Construct an `Address4` from an address and a Cisco-style wildcard mask
-     * given as separate strings (e.g. `0.0.0.255` for a `/24`). The wildcard
-     * mask is the bitwise inverse of the subnet mask. Throws `AddressError`
-     * if the mask is non-contiguous (e.g. `0.255.0.255`).
-     * @example
-     * var address = Address4.fromAddressAndWildcardMask('10.0.0.1', '0.0.0.255');
-     * address.subnetMask; // 24
-     */
-    static fromAddressAndWildcardMask(address, wildcardMask) {
-        const wildcard = new Address4(wildcardMask).bigInt();
-        const allOnes = (BigInt(1) << BigInt(constants.BITS)) - BigInt(1);
-        // eslint-disable-next-line no-bitwise
-        const mask = wildcard ^ allOnes;
-        const bits = common.prefixLengthFromMask(mask, constants.BITS);
-        return new Address4(`${address}/${bits}`);
-    }
-    /**
-     * Construct an `Address4` from a wildcard pattern with trailing `*`
-     * octets. The number of trailing wildcards determines the prefix
-     * length: each `*` represents 8 bits.
-     *
-     * Only trailing whole-octet wildcards are supported. Partial-octet
-     * wildcards (e.g. `192.168.0.1*`) and interior wildcards (e.g.
-     * `192.*.0.1`) throw `AddressError`.
-     * @example
-     * Address4.fromWildcard('192.168.0.*').subnet;   // '/24'
-     * Address4.fromWildcard('192.168.*.*').subnet;   // '/16'
-     * Address4.fromWildcard('*.*.*.*').subnet;       // '/0'
-     */
-    static fromWildcard(input) {
-        const groups = input.split('.');
-        if (groups.length !== constants.GROUPS) {
-            throw new address_error_1.AddressError('Wildcard pattern must have 4 octets');
-        }
-        let firstWildcard = -1;
-        for (let i = 0; i < groups.length; i++) {
-            if (groups[i] === '*') {
-                if (firstWildcard === -1) {
-                    firstWildcard = i;
-                }
-            }
-            else if (firstWildcard !== -1) {
-                throw new address_error_1.AddressError('Wildcard `*` must only appear in trailing octets (e.g. `192.168.0.*`)');
-            }
-        }
-        const trailing = firstWildcard === -1 ? 0 : groups.length - firstWildcard;
-        const replaced = groups.map((g) => (g === '*' ? '0' : g));
-        const subnetBits = constants.BITS - trailing * 8;
-        return new Address4(`${replaced.join('.')}/${subnetBits}`);
-    }
-    /**
-     * Converts a hex string to an IPv4 address object. Accepts 8 hex digits
-     * with optional `:` separators (e.g. `'7f000001'` or `'7f:00:00:01'`).
-     * Throws `AddressError` for any other length or for non-hex characters.
+     * Converts a hex string to an IPv4 address object
+     * @memberof Address4
+     * @static
      * @param {string} hex - a hex string to convert
      * @returns {Address4}
      */
     static fromHex(hex) {
-        const stripped = hex.replace(/:/g, '');
-        if (!/^[0-9a-fA-F]{8}$/.test(stripped)) {
-            throw new address_error_1.AddressError('IPv4 hex must be exactly 8 hex digits');
-        }
+        const padded = hex.replace(/:/g, '').padStart(8, '0');
         const groups = [];
-        for (let i = 0; i < 8; i += 2) {
-            groups.push(parseInt(stripped.slice(i, i + 2), 16));
+        let i;
+        for (i = 0; i < 8; i += 2) {
+            const h = padded.slice(i, i + 2);
+            groups.push(parseInt(h, 16));
         }
         return new Address4(groups.join('.'));
     }
     /**
-     * Converts an integer into a IPv4 address object. The integer must be a
-     * non-negative safe integer in the range `[0, 2**32 - 1]`; otherwise
-     * `AddressError` is thrown.
+     * Converts an integer into a IPv4 address object
+     * @memberof Address4
+     * @static
      * @param {integer} integer - a number to convert
      * @returns {Address4}
      */
     static fromInteger(integer) {
-        if (!Number.isInteger(integer) || integer < 0 || integer > 0xffffffff) {
-            throw new address_error_1.AddressError('IPv4 integer must be in the range 0 to 2**32 - 1');
-        }
-        return Address4.fromHex(integer.toString(16).padStart(8, '0'));
+        return Address4.fromHex(integer.toString(16));
     }
     /**
      * Return an address from in-addr.arpa form
+     * @memberof Address4
+     * @static
      * @param {string} arpaFormAddress - an 'in-addr.arpa' form ipv4 address
      * @returns {Adress4}
      * @example
@@ -86450,15 +86354,17 @@ class Address4 {
     }
     /**
      * Converts an IPv4 address object to a hex string
+     * @memberof Address4
+     * @instance
      * @returns {String}
      */
     toHex() {
         return this.parsedAddress.map((part) => common.stringToPaddedHex(part)).join(':');
     }
     /**
-     * Converts an IPv4 address object to an array of bytes.
-     *
-     * To get a Node.js `Buffer`, wrap the result: `Buffer.from(address.toArray())`.
+     * Converts an IPv4 address object to an array of bytes
+     * @memberof Address4
+     * @instance
      * @returns {Array}
      */
     toArray() {
@@ -86466,6 +86372,8 @@ class Address4 {
     }
     /**
      * Converts an IPv4 address object to an IPv6 address group
+     * @memberof Address4
+     * @instance
      * @returns {String}
      */
     toGroup6() {
@@ -86478,6 +86386,8 @@ class Address4 {
     }
     /**
      * Returns the address as a `bigint`
+     * @memberof Address4
+     * @instance
      * @returns {bigint}
      */
     bigInt() {
@@ -86485,6 +86395,8 @@ class Address4 {
     }
     /**
      * Helper function getting start address.
+     * @memberof Address4
+     * @instance
      * @returns {bigint}
      */
     _startAddress() {
@@ -86493,6 +86405,8 @@ class Address4 {
     /**
      * The first address in the range given by this address' subnet.
      * Often referred to as the Network Address.
+     * @memberof Address4
+     * @instance
      * @returns {Address4}
      */
     startAddress() {
@@ -86501,6 +86415,8 @@ class Address4 {
     /**
      * The first host address in the range given by this address's subnet ie
      * the first address after the Network Address
+     * @memberof Address4
+     * @instance
      * @returns {Address4}
      */
     startAddressExclusive() {
@@ -86509,6 +86425,8 @@ class Address4 {
     }
     /**
      * Helper function getting end address.
+     * @memberof Address4
+     * @instance
      * @returns {bigint}
      */
     _endAddress() {
@@ -86517,6 +86435,8 @@ class Address4 {
     /**
      * The last address in the range given by this address' subnet
      * Often referred to as the Broadcast
+     * @memberof Address4
+     * @instance
      * @returns {Address4}
      */
     endAddress() {
@@ -86525,6 +86445,8 @@ class Address4 {
     /**
      * The last host address in the range given by this address's subnet ie
      * the last address prior to the Broadcast Address
+     * @memberof Address4
+     * @instance
      * @returns {Address4}
      */
     endAddressExclusive() {
@@ -86532,47 +86454,19 @@ class Address4 {
         return Address4.fromBigInt(this._endAddress() - adjust);
     }
     /**
-     * The dotted-decimal form of the subnet mask, e.g. `255.255.240.0` for
-     * a `/20`. Returns an `Address4`; call `.correctForm()` for the string.
-     * @returns {Address4}
-     */
-    subnetMaskAddress() {
-        return Address4.fromBigInt(BigInt(`0b${'1'.repeat(this.subnetMask)}${'0'.repeat(constants.BITS - this.subnetMask)}`));
-    }
-    /**
-     * The Cisco-style wildcard mask, e.g. `0.0.0.255` for a `/24`. This is
-     * the bitwise inverse of `subnetMaskAddress()`. Returns an `Address4`;
-     * call `.correctForm()` for the string.
-     * @returns {Address4}
-     */
-    wildcardMask() {
-        return Address4.fromBigInt(BigInt(`0b${'0'.repeat(this.subnetMask)}${'1'.repeat(constants.BITS - this.subnetMask)}`));
-    }
-    /**
-     * The network address in CIDR string form, e.g. `192.168.1.0/24` for
-     * `192.168.1.5/24`. For an address with no explicit subnet the prefix is
-     * `/32`, e.g. `networkForm()` on `192.168.1.5` returns `192.168.1.5/32`.
-     * @returns {string}
-     */
-    networkForm() {
-        return `${this.startAddress().correctForm()}/${this.subnetMask}`;
-    }
-    /**
-     * Converts a BigInt to a v4 address object. The value must be in the
-     * range `[0, 2**32 - 1]`; otherwise `AddressError` is thrown.
+     * Converts a BigInt to a v4 address object
+     * @memberof Address4
+     * @static
      * @param {bigint} bigInt - a BigInt to convert
      * @returns {Address4}
      */
     static fromBigInt(bigInt) {
-        if (bigInt < 0n || bigInt > 0xffffffffn) {
-            throw new address_error_1.AddressError('IPv4 BigInt must be in the range 0 to 2**32 - 1');
-        }
-        return Address4.fromHex(bigInt.toString(16).padStart(8, '0'));
+        return Address4.fromHex(bigInt.toString(16));
     }
     /**
-     * Convert a byte array to an Address4 object.
-     *
-     * To convert from a Node.js `Buffer`, spread it: `Address4.fromByteArray([...buf])`.
+     * Convert a byte array to an Address4 object
+     * @memberof Address4
+     * @static
      * @param {Array<number>} bytes - an array of 4 bytes (0-255)
      * @returns {Address4}
      */
@@ -86590,6 +86484,8 @@ class Address4 {
     }
     /**
      * Convert an unsigned byte array to an Address4 object
+     * @memberof Address4
+     * @static
      * @param {Array<number>} bytes - an array of 4 unsigned bytes (0-255)
      * @returns {Address4}
      */
@@ -86603,6 +86499,8 @@ class Address4 {
     /**
      * Returns the first n bits of the address, defaulting to the
      * subnet mask
+     * @memberof Address4
+     * @instance
      * @returns {String}
      */
     mask(mask) {
@@ -86613,6 +86511,8 @@ class Address4 {
     }
     /**
      * Returns the bits in the given range as a base-2 string
+     * @memberof Address4
+     * @instance
      * @returns {string}
      */
     getBitsBase2(start, end) {
@@ -86620,8 +86520,10 @@ class Address4 {
     }
     /**
      * Return the reversed ip6.arpa form of the address
+     * @memberof Address4
      * @param {Object} options
      * @param {boolean} options.omitSuffix - omit the "in-addr.arpa" suffix
+     * @instance
      * @returns {String}
      */
     reverseForm(options) {
@@ -86636,62 +86538,21 @@ class Address4 {
     }
     /**
      * Returns true if the given address is a multicast address
+     * @memberof Address4
+     * @instance
      * @returns {boolean}
      */
     isMulticast() {
-        return this.isInSubnet(MULTICAST_V4);
-    }
-    /**
-     * Returns true if the address is in one of the [RFC 1918](https://datatracker.ietf.org/doc/html/rfc1918) private address ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`).
-     * @returns {boolean}
-     */
-    isPrivate() {
-        return PRIVATE_V4.some((subnet) => this.isInSubnet(subnet));
-    }
-    /**
-     * Returns true if the address is in the loopback range `127.0.0.0/8` ([RFC 1122](https://datatracker.ietf.org/doc/html/rfc1122)).
-     * @returns {boolean}
-     */
-    isLoopback() {
-        return this.isInSubnet(LOOPBACK_V4);
-    }
-    /**
-     * Returns true if the address is in the link-local range `169.254.0.0/16` ([RFC 3927](https://datatracker.ietf.org/doc/html/rfc3927)).
-     * @returns {boolean}
-     */
-    isLinkLocal() {
-        return this.isInSubnet(LINK_LOCAL_V4);
-    }
-    /**
-     * Returns true if the address is the unspecified address `0.0.0.0`.
-     * @returns {boolean}
-     */
-    isUnspecified() {
-        return this.isInSubnet(UNSPECIFIED_V4);
-    }
-    /**
-     * Returns true if the address is the limited broadcast address `255.255.255.255` ([RFC 919](https://datatracker.ietf.org/doc/html/rfc919)).
-     * @returns {boolean}
-     */
-    isBroadcast() {
-        return this.isInSubnet(BROADCAST_V4);
-    }
-    /**
-     * Returns true if the address is in the carrier-grade NAT range `100.64.0.0/10` ([RFC 6598](https://datatracker.ietf.org/doc/html/rfc6598)).
-     * @returns {boolean}
-     */
-    isCGNAT() {
-        return this.isInSubnet(CGNAT_V4);
+        return this.isInSubnet(new Address4('224.0.0.0/4'));
     }
     /**
      * Returns a zero-padded base-2 string representation of the address
+     * @memberof Address4
+     * @instance
      * @returns {string}
      */
     binaryZeroPad() {
-        if (this._binaryZeroPad === undefined) {
-            this._binaryZeroPad = this.bigInt().toString(2).padStart(constants.BITS, '0');
-        }
-        return this._binaryZeroPad;
+        return this.bigInt().toString(2).padStart(constants.BITS, '0');
     }
     /**
      * Groups an IPv4 address for inclusion at the end of an IPv6 address
@@ -86707,17 +86568,6 @@ class Address4 {
     }
 }
 exports.Address4 = Address4;
-const MULTICAST_V4 = new Address4('224.0.0.0/4');
-const PRIVATE_V4 = [
-    new Address4('10.0.0.0/8'),
-    new Address4('172.16.0.0/12'),
-    new Address4('192.168.0.0/16'),
-];
-const LOOPBACK_V4 = new Address4('127.0.0.0/8');
-const LINK_LOCAL_V4 = new Address4('169.254.0.0/16');
-const UNSPECIFIED_V4 = new Address4('0.0.0.0/32');
-const BROADCAST_V4 = new Address4('255.255.255.255/32');
-const CGNAT_V4 = new Address4('100.64.0.0/10');
 //# sourceMappingURL=ipv4.js.map
 
 /***/ }),
@@ -86761,7 +86611,6 @@ const ipv4_1 = __nccwpck_require__(17946);
 const regular_expressions_1 = __nccwpck_require__(72016);
 const address_error_1 = __nccwpck_require__(68850);
 const common_1 = __nccwpck_require__(45864);
-const isCorrect6 = common.isCorrect(constants6.BITS);
 function assert(condition) {
     if (!condition) {
         throw new Error('Assertion failed.');
@@ -86805,6 +86654,7 @@ function unsignByte(b) {
 }
 /**
  * Represents an IPv6 address
+ * @class Address6
  * @param {string} address - An IPv6 address string
  * @param {number} [groups=8] - How many octets to parse
  * @example
@@ -86821,14 +86671,18 @@ class Address6 {
         // #region Attributes
         /**
          * Returns true if the given address is in the subnet of the current address
+         * @memberof Address6
+         * @instance
          * @returns {boolean}
          */
         this.isInSubnet = common.isInSubnet;
         /**
          * Returns true if the address is correct, false otherwise
+         * @memberof Address6
+         * @instance
          * @returns {boolean}
          */
-        this.isCorrect = isCorrect6;
+        this.isCorrect = common.isCorrect(constants6.BITS);
         if (optionalGroups === undefined) {
             this.groups = constants6.GROUPS;
         }
@@ -86859,13 +86713,6 @@ class Address6 {
         this.addressMinusSuffix = address;
         this.parsedAddress = this.parse(this.addressMinusSuffix);
     }
-    /**
-     * Returns true if the given string is a valid IPv6 address (with optional
-     * CIDR subnet and zone identifier), false otherwise. Host bits in the
-     * subnet portion are allowed (e.g. `2001:db8::1/32` is valid); for strict
-     * network-address validation compare `correctForm()` to
-     * `startAddress().correctForm()`, or use `networkForm()`.
-     */
     static isValid(address) {
         try {
             // eslint-disable-next-line no-new
@@ -86877,8 +86724,9 @@ class Address6 {
         }
     }
     /**
-     * Convert a BigInt to a v6 address object. The value must be in the
-     * range `[0, 2**128 - 1]`; otherwise `AddressError` is thrown.
+     * Convert a BigInt to a v6 address object
+     * @memberof Address6
+     * @static
      * @param {bigint} bigInt - a BigInt to convert
      * @returns {Address6}
      * @example
@@ -86887,21 +86735,19 @@ class Address6 {
      * address.correctForm(); // '::e8:d4a5:1000'
      */
     static fromBigInt(bigInt) {
-        if (bigInt < 0n || bigInt > (1n << BigInt(constants6.BITS)) - 1n) {
-            throw new address_error_1.AddressError('IPv6 BigInt must be in the range 0 to 2**128 - 1');
-        }
         const hex = bigInt.toString(16).padStart(32, '0');
         const groups = [];
-        for (let i = 0; i < constants6.GROUPS; i++) {
+        let i;
+        for (i = 0; i < constants6.GROUPS; i++) {
             groups.push(hex.slice(i * 4, (i + 1) * 4));
         }
         return new Address6(groups.join(':'));
     }
     /**
-     * Parse a URL (with optional bracketed host and port) into an address and
-     * port. Returns either `{ address, port }` on success or
-     * `{ error, address: null, port: null }` if the URL could not be parsed.
-     * Ports are returned as numbers (or `null` if absent or out of range).
+     * Convert a URL (with optional port number) to an address object
+     * @memberof Address6
+     * @static
+     * @param {string} url - a URL with optional port number
      * @example
      * var addressAndPort = Address6.fromURL('http://[ffff::]:8080/foo/');
      * addressAndPort.address.correctForm(); // 'ffff::'
@@ -86961,91 +86807,9 @@ class Address6 {
         };
     }
     /**
-     * Construct an `Address6` from an address and a hex subnet mask given as
-     * separate strings (e.g. as returned by Node's `os.networkInterfaces()`).
-     * Throws `AddressError` if the mask is non-contiguous (e.g.
-     * `ffff::ffff`).
-     * @example
-     * var address = Address6.fromAddressAndMask('fe80::1', 'ffff:ffff:ffff:ffff::');
-     * address.subnetMask; // 64
-     */
-    static fromAddressAndMask(address, mask) {
-        const bits = common.prefixLengthFromMask(new Address6(mask).bigInt(), constants6.BITS);
-        return new Address6(`${address}/${bits}`);
-    }
-    /**
-     * Construct an `Address6` from an address and a Cisco-style wildcard mask
-     * given as separate strings (e.g. `::ffff:ffff:ffff:ffff` for a `/64`).
-     * The wildcard mask is the bitwise inverse of the subnet mask. Throws
-     * `AddressError` if the mask is non-contiguous.
-     * @example
-     * var address = Address6.fromAddressAndWildcardMask('fe80::1', '::ffff:ffff:ffff:ffff');
-     * address.subnetMask; // 64
-     */
-    static fromAddressAndWildcardMask(address, wildcardMask) {
-        const wildcard = new Address6(wildcardMask).bigInt();
-        const allOnes = (BigInt(1) << BigInt(constants6.BITS)) - BigInt(1);
-        // eslint-disable-next-line no-bitwise
-        const mask = wildcard ^ allOnes;
-        const bits = common.prefixLengthFromMask(mask, constants6.BITS);
-        return new Address6(`${address}/${bits}`);
-    }
-    /**
-     * Construct an `Address6` from a wildcard pattern with trailing `*`
-     * groups. The number of trailing wildcards determines the prefix
-     * length: each `*` represents 16 bits. `::` is expanded to zero groups
-     * (not wildcards) before evaluating trailing wildcards.
-     *
-     * Only trailing whole-group wildcards are supported. Partial-group
-     * wildcards (e.g. `2001:db8::0*`) and interior wildcards (e.g.
-     * `*::1`) throw `AddressError`.
-     * @example
-     * Address6.fromWildcard('2001:db8:*:*:*:*:*:*').subnet;  // '/32'
-     * Address6.fromWildcard('2001:db8::*').subnet;           // '/112'
-     * Address6.fromWildcard('*:*:*:*:*:*:*:*').subnet;       // '/0'
-     */
-    static fromWildcard(input) {
-        if (input.includes('%') || input.includes('/')) {
-            throw new address_error_1.AddressError('Wildcard pattern must not include a zone or CIDR suffix');
-        }
-        const halves = input.split('::');
-        if (halves.length > 2) {
-            throw new address_error_1.AddressError("Wildcard pattern cannot contain more than one '::'");
-        }
-        let groups;
-        if (halves.length === 2) {
-            const left = halves[0] === '' ? [] : halves[0].split(':');
-            const right = halves[1] === '' ? [] : halves[1].split(':');
-            const remaining = constants6.GROUPS - left.length - right.length;
-            if (remaining < 1) {
-                throw new address_error_1.AddressError("Wildcard pattern with '::' has too many groups");
-            }
-            groups = [...left, ...new Array(remaining).fill('0'), ...right];
-        }
-        else {
-            groups = input.split(':');
-        }
-        if (groups.length !== constants6.GROUPS) {
-            throw new address_error_1.AddressError('Wildcard pattern must have 8 groups');
-        }
-        let firstWildcard = -1;
-        for (let i = 0; i < groups.length; i++) {
-            if (groups[i] === '*') {
-                if (firstWildcard === -1) {
-                    firstWildcard = i;
-                }
-            }
-            else if (firstWildcard !== -1) {
-                throw new address_error_1.AddressError('Wildcard `*` must only appear in trailing groups (e.g. `2001:db8:*:*:*:*:*:*`)');
-            }
-        }
-        const trailing = firstWildcard === -1 ? 0 : groups.length - firstWildcard;
-        const replaced = groups.map((g) => (g === '*' ? '0' : g));
-        const subnetBits = constants6.BITS - trailing * 16;
-        return new Address6(`${replaced.join(':')}/${subnetBits}`);
-    }
-    /**
      * Create an IPv6-mapped address given an IPv4 address
+     * @memberof Address6
+     * @static
      * @param {string} address - An IPv4 address string
      * @returns {Address6}
      * @example
@@ -87060,6 +86824,8 @@ class Address6 {
     }
     /**
      * Return an address from ip6.arpa form
+     * @memberof Address6
+     * @static
      * @param {string} arpaFormAddress - an 'ip6.arpa' form address
      * @returns {Adress6}
      * @example
@@ -87084,6 +86850,8 @@ class Address6 {
     }
     /**
      * Return the Microsoft UNC transcription of the address
+     * @memberof Address6
+     * @instance
      * @returns {String} the Microsoft UNC transcription of the address
      */
     microsoftTranscription() {
@@ -87091,6 +86859,8 @@ class Address6 {
     }
     /**
      * Return the first n bits of the address, defaulting to the subnet mask
+     * @memberof Address6
+     * @instance
      * @param {number} [mask=subnet] - the number of bits to mask
      * @returns {String} the first n bits of the address as a string
      */
@@ -87099,6 +86869,8 @@ class Address6 {
     }
     /**
      * Return the number of possible subnets of a given size in the address
+     * @memberof Address6
+     * @instance
      * @param {number} [subnetSize=128] - the subnet size
      * @returns {String}
      */
@@ -87114,6 +86886,8 @@ class Address6 {
     }
     /**
      * Helper function getting start address.
+     * @memberof Address6
+     * @instance
      * @returns {bigint}
      */
     _startAddress() {
@@ -87122,6 +86896,8 @@ class Address6 {
     /**
      * The first address in the range given by this address' subnet
      * Often referred to as the Network Address.
+     * @memberof Address6
+     * @instance
      * @returns {Address6}
      */
     startAddress() {
@@ -87130,6 +86906,8 @@ class Address6 {
     /**
      * The first host address in the range given by this address's subnet ie
      * the first address after the Network Address
+     * @memberof Address6
+     * @instance
      * @returns {Address6}
      */
     startAddressExclusive() {
@@ -87138,6 +86916,8 @@ class Address6 {
     }
     /**
      * Helper function getting end address.
+     * @memberof Address6
+     * @instance
      * @returns {bigint}
      */
     _endAddress() {
@@ -87146,6 +86926,8 @@ class Address6 {
     /**
      * The last address in the range given by this address' subnet
      * Often referred to as the Broadcast
+     * @memberof Address6
+     * @instance
      * @returns {Address6}
      */
     endAddress() {
@@ -87154,6 +86936,8 @@ class Address6 {
     /**
      * The last host address in the range given by this address's subnet ie
      * the last address prior to the Broadcast Address
+     * @memberof Address6
+     * @instance
      * @returns {Address6}
      */
     endAddressExclusive() {
@@ -87161,73 +86945,36 @@ class Address6 {
         return Address6.fromBigInt(this._endAddress() - adjust);
     }
     /**
-     * The hex form of the subnet mask, e.g. `ffff:ffff:ffff:ffff::` for a
-     * `/64`. Returns an `Address6`; call `.correctForm()` for the string.
-     * @returns {Address6}
-     */
-    subnetMaskAddress() {
-        return Address6.fromBigInt(BigInt(`0b${'1'.repeat(this.subnetMask)}${'0'.repeat(constants6.BITS - this.subnetMask)}`));
-    }
-    /**
-     * The Cisco-style wildcard mask, e.g. `::ffff:ffff:ffff:ffff` for a
-     * `/64`. This is the bitwise inverse of `subnetMaskAddress()`. Returns
-     * an `Address6`; call `.correctForm()` for the string.
-     * @returns {Address6}
-     */
-    wildcardMask() {
-        return Address6.fromBigInt(BigInt(`0b${'0'.repeat(this.subnetMask)}${'1'.repeat(constants6.BITS - this.subnetMask)}`));
-    }
-    /**
-     * The network address in CIDR string form, e.g. `2001:db8::/32` for
-     * `2001:db8::1/32`. For an address with no explicit subnet the prefix
-     * is `/128`, e.g. `networkForm()` on `2001:db8::1` returns
-     * `2001:db8::1/128`.
-     * @returns {string}
-     */
-    networkForm() {
-        return `${this.startAddress().correctForm()}/${this.subnetMask}`;
-    }
-    /**
-     * Return the scope of the address. The 4-bit scope field
-     * ([RFC 4291 §2.7](https://datatracker.ietf.org/doc/html/rfc4291#section-2.7))
-     * is only defined for multicast addresses; for unicast addresses the scope
-     * is derived from the address type per
-     * [RFC 4007 §6](https://datatracker.ietf.org/doc/html/rfc4007#section-6).
+     * Return the scope of the address
+     * @memberof Address6
+     * @instance
      * @returns {String}
      */
     getScope() {
-        const type = this.getType();
-        if (type === 'Multicast' || type.startsWith('Multicast ')) {
-            const scope = constants6.SCOPES[parseInt(this.getBits(12, 16).toString(10), 10)];
-            return scope || 'Unknown';
+        let scope = constants6.SCOPES[parseInt(this.getBits(12, 16).toString(10), 10)];
+        if (this.getType() === 'Global unicast' && scope !== 'Link local') {
+            scope = 'Global';
         }
-        // RFC 4291 §2.5.3: the loopback address is treated as having Link-Local
-        // scope. (Multicast scope 1, "Interface-Local", is a different concept
-        // used only for loopback transmission of multicast.)
-        if (type === 'Link-local unicast' || type === 'Loopback') {
-            return 'Link local';
-        }
-        // RFC 4007 §6: the unspecified address has no scope.
-        if (type === 'Unspecified') {
-            return 'Unknown';
-        }
-        return 'Global';
+        return scope || 'Unknown';
     }
     /**
      * Return the type of the address
+     * @memberof Address6
+     * @instance
      * @returns {String}
      */
     getType() {
-        for (let i = 0; i < TYPE_SUBNETS.length; i++) {
-            const entry = TYPE_SUBNETS[i];
-            if (this.isInSubnet(entry[0])) {
-                return entry[1];
+        for (const subnet of Object.keys(constants6.TYPES)) {
+            if (this.isInSubnet(new Address6(subnet))) {
+                return constants6.TYPES[subnet];
             }
         }
         return 'Global unicast';
     }
     /**
      * Return the bits in the given range as a BigInt
+     * @memberof Address6
+     * @instance
      * @returns {bigint}
      */
     getBits(start, end) {
@@ -87235,6 +86982,8 @@ class Address6 {
     }
     /**
      * Return the bits in the given range as a base-2 string
+     * @memberof Address6
+     * @instance
      * @returns {String}
      */
     getBitsBase2(start, end) {
@@ -87242,6 +86991,8 @@ class Address6 {
     }
     /**
      * Return the bits in the given range as a base-16 string
+     * @memberof Address6
+     * @instance
      * @returns {String}
      */
     getBitsBase16(start, end) {
@@ -87255,6 +87006,8 @@ class Address6 {
     }
     /**
      * Return the bits that are set past the subnet mask length
+     * @memberof Address6
+     * @instance
      * @returns {String}
      */
     getBitsPastSubnet() {
@@ -87262,8 +87015,10 @@ class Address6 {
     }
     /**
      * Return the reversed ip6.arpa form of the address
+     * @memberof Address6
      * @param {Object} options
      * @param {boolean} options.omitSuffix - omit the "ip6.arpa" suffix
+     * @instance
      * @returns {String}
      */
     reverseForm(options) {
@@ -87289,10 +87044,10 @@ class Address6 {
         return 'ip6.arpa.';
     }
     /**
-     * Returns the address in correct form, per
-     * [RFC 5952](https://datatracker.ietf.org/doc/html/rfc5952): leading zeros
-     * stripped, the longest run of zero groups collapsed to `::`, and hex digits
-     * lowercased (e.g. `2001:db8::1`). This is the recommended form for display.
+     * Return the correct form of the address
+     * @memberof Address6
+     * @instance
+     * @returns {String}
      */
     correctForm() {
         let i;
@@ -87336,6 +87091,8 @@ class Address6 {
     }
     /**
      * Return a zero-padded base-2 string representation of the address
+     * @memberof Address6
+     * @instance
      * @returns {String}
      * @example
      * var address = new Address6('2001:4860:4001:803::1011');
@@ -87344,22 +87101,10 @@ class Address6 {
      * //  0000000000000000000000000000000000000000000000000001000000010001'
      */
     binaryZeroPad() {
-        if (this._binaryZeroPad === undefined) {
-            this._binaryZeroPad = this.bigInt().toString(2).padStart(constants6.BITS, '0');
-        }
-        return this._binaryZeroPad;
+        return this.bigInt().toString(2).padStart(constants6.BITS, '0');
     }
-    /**
-     * Parses a v4-in-v6 string (e.g. `::ffff:192.168.0.1`) by extracting the
-     * trailing IPv4 address into `this.address4` / `this.parsedAddress4` and
-     * returning the address with the v4 portion converted to two v6 groups.
-     * Used internally by `parse()`.
-     */
     // TODO: Improve the semantics of this helper function
     parse4in6(address) {
-        if (address.indexOf('.') === -1) {
-            return address;
-        }
         const groups = address.split(':');
         const lastGroup = groups.slice(-1)[0];
         const address4 = lastGroup.match(constants4.RE_ADDRESS);
@@ -87368,12 +87113,7 @@ class Address6 {
             this.address4 = new ipv4_1.Address4(this.parsedAddress4);
             for (let i = 0; i < this.address4.groups; i++) {
                 if (/^0[0-9]+/.test(this.address4.parsedAddress[i])) {
-                    // The prefix groups haven't been through the bad-character check
-                    // yet, so escape them before including in the error HTML.
-                    const highlighted = this.address4.parsedAddress.map(spanLeadingZeroes4).join('.');
-                    const prefix = groups.slice(0, -1).map(helpers.escapeHtml).join(':');
-                    const separator = groups.length > 1 ? ':' : '';
-                    throw new address_error_1.AddressError("IPv4 addresses can't have leading zeroes.", `${prefix}${separator}${highlighted}`);
+                    throw new address_error_1.AddressError("IPv4 addresses can't have leading zeroes.", address.replace(constants4.RE_ADDRESS, this.address4.parsedAddress.map(spanLeadingZeroes4).join('.')));
                 }
             }
             this.v4 = true;
@@ -87382,13 +87122,6 @@ class Address6 {
         }
         return address;
     }
-    /**
-     * Parses an IPv6 address string into its 8 hexadecimal groups (expanding
-     * any `::` elision and any trailing v4-in-v6 portion) and stores the result
-     * on `this.parsedAddress`. Called automatically by the constructor; you
-     * typically don't need to call it directly. Throws `AddressError` if the
-     * input is malformed.
-     */
     // TODO: Make private?
     parse(address) {
         address = this.parse4in6(address);
@@ -87438,16 +87171,18 @@ class Address6 {
         return groups;
     }
     /**
-     * Returns the canonical (fully expanded) form of the address: all 8 groups,
-     * each padded to 4 hex digits, with no `::` collapsing
-     * (e.g. `2001:0db8:0000:0000:0000:0000:0000:0001`). Useful for sorting and
-     * byte-exact comparison.
+     * Return the canonical form of the address
+     * @memberof Address6
+     * @instance
+     * @returns {String}
      */
     canonicalForm() {
         return this.parsedAddress.map(paddedHex).join(':');
     }
     /**
      * Return the decimal form of the address
+     * @memberof Address6
+     * @instance
      * @returns {String}
      */
     decimal() {
@@ -87455,6 +87190,8 @@ class Address6 {
     }
     /**
      * Return the address as a BigInt
+     * @memberof Address6
+     * @instance
      * @returns {bigint}
      */
     bigInt() {
@@ -87462,6 +87199,8 @@ class Address6 {
     }
     /**
      * Return the last two groups of this address as an IPv4 address string
+     * @memberof Address6
+     * @instance
      * @returns {Address4}
      * @example
      * var address = new Address6('2001:4860:4001::1825:bf11');
@@ -87469,10 +87208,12 @@ class Address6 {
      */
     to4() {
         const binary = this.binaryZeroPad().split('');
-        return ipv4_1.Address4.fromHex(BigInt(`0b${binary.slice(96, 128).join('')}`).toString(16).padStart(8, '0'));
+        return ipv4_1.Address4.fromHex(BigInt(`0b${binary.slice(96, 128).join('')}`).toString(16));
     }
     /**
      * Return the v4-in-v6 form of the address
+     * @memberof Address6
+     * @instance
      * @returns {String}
      */
     to4in6() {
@@ -87486,10 +87227,10 @@ class Address6 {
         return correct + infix + address4.address;
     }
     /**
-     * Decodes the Teredo tunneling fields embedded in this address. Returns the
-     * Teredo prefix, server IPv4, client IPv4, raw flag bits, cone-NAT flag,
-     * UDP port, and Microsoft-format flag breakdown (reserved, universal/local,
-     * group/individual, nonce). Only meaningful for addresses in `2001::/32`.
+     * Return an object containing the Teredo properties of the address
+     * @memberof Address6
+     * @instance
+     * @returns {Object}
      */
     inspectTeredo() {
         /*
@@ -87520,7 +87261,7 @@ class Address6 {
         const server4 = ipv4_1.Address4.fromHex(this.getBitsBase16(32, 64));
         const bitsForClient4 = this.getBits(96, 128);
         // eslint-disable-next-line no-bitwise
-        const client4 = ipv4_1.Address4.fromHex((bitsForClient4 ^ BigInt('0xffffffff')).toString(16).padStart(8, '0'));
+        const client4 = ipv4_1.Address4.fromHex((bitsForClient4 ^ BigInt('0xffffffff')).toString(16));
         const flagsBase2 = this.getBitsBase2(64, 80);
         const coneNat = (0, common_1.testBit)(flagsBase2, 15);
         const reserved = (0, common_1.testBit)(flagsBase2, 14);
@@ -87543,9 +87284,10 @@ class Address6 {
         };
     }
     /**
-     * Decodes the 6to4 tunneling fields embedded in this address. Returns the
-     * 6to4 prefix and the embedded IPv4 gateway address. Only meaningful for
-     * addresses in `2002::/16`.
+     * Return an object containing the 6to4 properties of the address
+     * @memberof Address6
+     * @instance
+     * @returns {Object}
      */
     inspect6to4() {
         /*
@@ -87561,6 +87303,8 @@ class Address6 {
     }
     /**
      * Return a v6 6to4 address from a v6 v4inv6 address
+     * @memberof Address6
+     * @instance
      * @returns {Address6}
      */
     to6to4() {
@@ -87577,80 +87321,9 @@ class Address6 {
         return new Address6(addr6to4);
     }
     /**
-     * Embed an IPv4 address into a NAT64 IPv6 address using the encoding
-     * defined by [RFC 6052](https://datatracker.ietf.org/doc/html/rfc6052).
-     * The default prefix is the well-known prefix `64:ff9b::/96`. The prefix
-     * length must be one of 32, 40, 48, 56, 64, or 96; for prefixes shorter
-     * than /64 the IPv4 octets are split around the reserved bits 64–71.
-     * @example
-     * Address6.fromAddress4Nat64('192.0.2.33').correctForm(); // '64:ff9b::c000:221'
-     * Address6.fromAddress4Nat64('192.0.2.33', '2001:db8::/32').correctForm(); // '2001:db8:c000:221::'
-     */
-    static fromAddress4Nat64(address, prefix = '64:ff9b::/96') {
-        const v4 = new ipv4_1.Address4(address);
-        const prefix6 = new Address6(prefix);
-        const pl = prefix6.subnetMask;
-        if (pl !== 32 && pl !== 40 && pl !== 48 && pl !== 56 && pl !== 64 && pl !== 96) {
-            throw new address_error_1.AddressError('NAT64 prefix length must be 32, 40, 48, 56, 64, or 96');
-        }
-        const prefixBits = prefix6.binaryZeroPad();
-        const v4Bits = v4.binaryZeroPad();
-        let bits;
-        if (pl === 96) {
-            bits = prefixBits.slice(0, 96) + v4Bits;
-        }
-        else {
-            const beforeU = 64 - pl;
-            bits =
-                prefixBits.slice(0, pl) +
-                    v4Bits.slice(0, beforeU) +
-                    '00000000' +
-                    v4Bits.slice(beforeU) +
-                    '0'.repeat(128 - 72 - (32 - beforeU));
-        }
-        const hex = BigInt(`0b${bits}`).toString(16).padStart(32, '0');
-        const groups = [];
-        for (let i = 0; i < 8; i++) {
-            groups.push(hex.slice(i * 4, (i + 1) * 4));
-        }
-        return new Address6(groups.join(':'));
-    }
-    /**
-     * Extract the embedded IPv4 address from a NAT64 IPv6 address using the
-     * encoding defined by [RFC 6052](https://datatracker.ietf.org/doc/html/rfc6052).
-     * The default prefix is the well-known prefix `64:ff9b::/96`. Returns
-     * `null` if this address is not contained within the given prefix.
-     * @example
-     * new Address6('64:ff9b::c000:221').toAddress4Nat64()!.correctForm(); // '192.0.2.33'
-     */
-    toAddress4Nat64(prefix = '64:ff9b::/96') {
-        const prefix6 = new Address6(prefix);
-        const pl = prefix6.subnetMask;
-        if (pl !== 32 && pl !== 40 && pl !== 48 && pl !== 56 && pl !== 64 && pl !== 96) {
-            throw new address_error_1.AddressError('NAT64 prefix length must be 32, 40, 48, 56, 64, or 96');
-        }
-        if (!this.isInSubnet(prefix6)) {
-            return null;
-        }
-        const bits = this.binaryZeroPad();
-        let v4Bits;
-        if (pl === 96) {
-            v4Bits = bits.slice(96, 128);
-        }
-        else {
-            const beforeU = 64 - pl;
-            v4Bits = bits.slice(pl, pl + beforeU) + bits.slice(72, 72 + (32 - beforeU));
-        }
-        const octets = [];
-        for (let i = 0; i < 4; i++) {
-            octets.push(parseInt(v4Bits.slice(i * 8, (i + 1) * 8), 2).toString());
-        }
-        return new ipv4_1.Address4(octets.join('.'));
-    }
-    /**
-     * Return a byte array.
-     *
-     * To get a Node.js `Buffer`, wrap the result: `Buffer.from(address.toByteArray())`.
+     * Return a byte array
+     * @memberof Address6
+     * @instance
      * @returns {Array}
      */
     toByteArray() {
@@ -87664,27 +87337,27 @@ class Address6 {
         return bytes;
     }
     /**
-     * Return an unsigned byte array.
-     *
-     * To get a Node.js `Buffer`, wrap the result: `Buffer.from(address.toUnsignedByteArray())`.
+     * Return an unsigned byte array
+     * @memberof Address6
+     * @instance
      * @returns {Array}
      */
     toUnsignedByteArray() {
         return this.toByteArray().map(unsignByte);
     }
     /**
-     * Convert a byte array to an Address6 object.
-     *
-     * To convert from a Node.js `Buffer`, spread it: `Address6.fromByteArray([...buf])`.
+     * Convert a byte array to an Address6 object
+     * @memberof Address6
+     * @static
      * @returns {Address6}
      */
     static fromByteArray(bytes) {
         return this.fromUnsignedByteArray(bytes.map(unsignByte));
     }
     /**
-     * Convert an unsigned byte array to an Address6 object.
-     *
-     * To convert from a Node.js `Buffer`, spread it: `Address6.fromUnsignedByteArray([...buf])`.
+     * Convert an unsigned byte array to an Address6 object
+     * @memberof Address6
+     * @static
      * @returns {Address6}
      */
     static fromUnsignedByteArray(bytes) {
@@ -87699,6 +87372,8 @@ class Address6 {
     }
     /**
      * Returns true if the address is in the canonical form, false otherwise
+     * @memberof Address6
+     * @instance
      * @returns {boolean}
      */
     isCanonical() {
@@ -87706,6 +87381,8 @@ class Address6 {
     }
     /**
      * Returns true if the address is a link local address, false otherwise
+     * @memberof Address6
+     * @instance
      * @returns {boolean}
      */
     isLinkLocal() {
@@ -87718,81 +87395,53 @@ class Address6 {
     }
     /**
      * Returns true if the address is a multicast address, false otherwise
+     * @memberof Address6
+     * @instance
      * @returns {boolean}
      */
     isMulticast() {
-        const type = this.getType();
-        return type === 'Multicast' || type.startsWith('Multicast ');
+        return this.getType() === 'Multicast';
     }
     /**
-     * Returns true if the address was written in v4-in-v6 dotted-quad notation
-     * (e.g. `::ffff:127.0.0.1`), false otherwise. This is a notation-level flag
-     * and does not reflect whether the address bits lie in the IPv4-mapped
-     * (`::ffff:0:0/96`) subnet — for that, see {@link isMapped4}.
+     * Returns true if the address is a v4-in-v6 address, false otherwise
+     * @memberof Address6
+     * @instance
      * @returns {boolean}
      */
     is4() {
         return this.v4;
     }
     /**
-     * Returns true if the address is an IPv4-mapped IPv6 address in
-     * `::ffff:0:0/96` ([RFC 4291 §2.5.5.2](https://datatracker.ietf.org/doc/html/rfc4291#section-2.5.5.2)),
-     * false otherwise. Unlike {@link is4}, this checks the underlying address
-     * bits rather than the textual notation, so `::ffff:127.0.0.1` and
-     * `::ffff:7f00:1` both return true.
-     * @returns {boolean}
-     */
-    isMapped4() {
-        return this.isInSubnet(IPV4_MAPPED_SUBNET);
-    }
-    /**
      * Returns true if the address is a Teredo address, false otherwise
+     * @memberof Address6
+     * @instance
      * @returns {boolean}
      */
     isTeredo() {
-        return this.isInSubnet(TEREDO_SUBNET);
+        return this.isInSubnet(new Address6('2001::/32'));
     }
     /**
      * Returns true if the address is a 6to4 address, false otherwise
+     * @memberof Address6
+     * @instance
      * @returns {boolean}
      */
     is6to4() {
-        return this.isInSubnet(SIX_TO_FOUR_SUBNET);
+        return this.isInSubnet(new Address6('2002::/16'));
     }
     /**
      * Returns true if the address is a loopback address, false otherwise
+     * @memberof Address6
+     * @instance
      * @returns {boolean}
      */
     isLoopback() {
         return this.getType() === 'Loopback';
     }
-    /**
-     * Returns true if the address is a Unique Local Address in `fc00::/7` ([RFC 4193](https://datatracker.ietf.org/doc/html/rfc4193)). ULAs are the IPv6 equivalent of IPv4 [RFC 1918](https://datatracker.ietf.org/doc/html/rfc1918) private addresses.
-     * @returns {boolean}
-     */
-    isULA() {
-        return this.isInSubnet(ULA_SUBNET);
-    }
-    /**
-     * Returns true if the address is the unspecified address `::`.
-     * @returns {boolean}
-     */
-    isUnspecified() {
-        return this.getType() === 'Unspecified';
-    }
-    /**
-     * Returns true if the address is in the documentation prefix `2001:db8::/32` ([RFC 3849](https://datatracker.ietf.org/doc/html/rfc3849)).
-     * @returns {boolean}
-     */
-    isDocumentation() {
-        return this.isInSubnet(DOCUMENTATION_SUBNET);
-    }
     // #endregion
     // #region HTML
     /**
-     * Returns the address as an HTTP URL with the host bracketed, e.g.
-     * `http://[2001:db8::1]/`. If `optionalPort` is provided it is appended,
-     * e.g. `http://[2001:db8::1]:8080/`.
+     * @returns {String} the address in link form with a default port of 80
      */
     href(optionalPort) {
         if (optionalPort === undefined) {
@@ -87804,12 +87453,7 @@ class Address6 {
         return `http://[${this.correctForm()}]${optionalPort}/`;
     }
     /**
-     * Returns an HTML `<a>` element whose `href` encodes the address in a URL
-     * hash fragment (default prefix `/#address=`). Useful for linking between
-     * pages of an address-inspector UI.
-     * @param options.className - CSS class for the rendered `<a>` element
-     * @param options.prefix - hash prefix prepended to the address (default `/#address=`)
-     * @param options.v4 - when true, render the address in v4-in-v6 form
+     * @returns {String} a link suitable for conveying the address via a URL hash
      */
     link(options) {
         if (!options) {
@@ -87829,13 +87473,10 @@ class Address6 {
             formFunction = this.to4in6;
         }
         const form = formFunction.call(this);
-        const safeHref = helpers.escapeHtml(`${options.prefix}${form}`);
-        const safeForm = helpers.escapeHtml(form);
         if (options.className) {
-            const safeClass = helpers.escapeHtml(options.className);
-            return `<a href="${safeHref}" class="${safeClass}">${safeForm}</a>`;
+            return `<a href="${options.prefix}${form}" class="${options.className}">${form}</a>`;
         }
-        return `<a href="${safeHref}">${safeForm}</a>`;
+        return `<a href="${options.prefix}${form}">${form}</a>`;
     }
     /**
      * Groups an address
@@ -87844,13 +87485,13 @@ class Address6 {
     group() {
         if (this.elidedGroups === 0) {
             // The simple case
-            return helpers.simpleGroup(this.addressMinusSuffix).join(':');
+            return helpers.simpleGroup(this.address).join(':');
         }
         assert(typeof this.elidedGroups === 'number');
         assert(typeof this.elisionBegin === 'number');
         // The elided case
         const output = [];
-        const [left, right] = this.addressMinusSuffix.split('::');
+        const [left, right] = this.address.split('::');
         if (left.length) {
             output.push(...helpers.simpleGroup(left));
         }
@@ -87880,6 +87521,8 @@ class Address6 {
     /**
      * Generate a regular expression string that can be used to find or validate
      * all variations of this address
+     * @memberof Address6
+     * @instance
      * @param {boolean} substringSearch
      * @returns {string}
      */
@@ -87924,6 +87567,8 @@ class Address6 {
     /**
      * Generate a regular expression that can be used to find or validate all
      * variations of this address.
+     * @memberof Address6
+     * @instance
      * @param {boolean} substringSearch
      * @returns {RegExp}
      */
@@ -87932,15 +87577,6 @@ class Address6 {
     }
 }
 exports.Address6 = Address6;
-const TYPE_SUBNETS = Object.keys(constants6.TYPES).map((subnet) => [
-    new Address6(subnet),
-    constants6.TYPES[subnet],
-]);
-const TEREDO_SUBNET = new Address6('2001::/32');
-const SIX_TO_FOUR_SUBNET = new Address6('2002::/16');
-const ULA_SUBNET = new Address6('fc00::/7');
-const DOCUMENTATION_SUBNET = new Address6('2001:db8::/32');
-const IPV4_MAPPED_SUBNET = new Address6('::ffff:0:0/96');
 //# sourceMappingURL=ipv6.js.map
 
 /***/ }),
@@ -88010,11 +87646,6 @@ exports.TYPES = {
     '::1/128': 'Loopback',
     'ff00::/8': 'Multicast',
     'fe80::/10': 'Link-local unicast',
-    'fc00::/7': 'Unique local',
-    '2002::/16': '6to4',
-    '2001:db8::/32': 'Documentation',
-    '64:ff9b::/96': 'NAT64 (well-known)',
-    '64:ff9b:1::/48': 'NAT64 (local-use)',
 };
 /**
  * A regular expression that matches bad characters in an IPv6 address
@@ -88051,24 +87682,15 @@ exports.RE_URL_WITH_PORT = /\[([0-9a-f:]+)\]:([0-9]{1,5})/;
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.escapeHtml = escapeHtml;
 exports.spanAllZeroes = spanAllZeroes;
 exports.spanAll = spanAll;
 exports.spanLeadingZeroes = spanLeadingZeroes;
 exports.simpleGroup = simpleGroup;
-function escapeHtml(s) {
-    return s
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
 /**
  * @returns {String} the string with all zeroes contained in a <span>
  */
 function spanAllZeroes(s) {
-    return escapeHtml(s).replace(/(0+)/g, '<span class="zero">$1</span>');
+    return s.replace(/(0+)/g, '<span class="zero">$1</span>');
 }
 /**
  * @returns {String} the string with each character contained in a <span>
@@ -88076,11 +87698,11 @@ function spanAllZeroes(s) {
 function spanAll(s, offset = 0) {
     const letters = s.split('');
     return letters
-        .map((n, i) => `<span class="digit value-${escapeHtml(n)} position-${i + offset}">${spanAllZeroes(n)}</span>`)
+        .map((n, i) => `<span class="digit value-${n} position-${i + offset}">${spanAllZeroes(n)}</span>`)
         .join('');
 }
 function spanLeadingZeroesSimple(group) {
-    return escapeHtml(group).replace(/^(0+)/, '<span class="zero">$1</span>');
+    return group.replace(/^(0+)/, '<span class="zero">$1</span>');
 }
 /**
  * @returns {String} the string with leading zeroes contained in a <span>
@@ -89691,8 +89313,6 @@ function Minimatch (pattern, options) {
   }
 
   this.options = options
-  this.maxGlobstarRecursion = options.maxGlobstarRecursion !== undefined
-    ? options.maxGlobstarRecursion : 200
   this.set = []
   this.pattern = pattern
   this.regexp = null
@@ -89940,9 +89560,6 @@ function parse (pattern, isSub) {
           re += c
           continue
         }
-
-        // coalesce consecutive non-globstar * characters
-        if (c === '*' && stateChar === '*') continue
 
         // if we already have a stateChar, then it means
         // that there was something like ** or +? in there.
@@ -90338,163 +89955,19 @@ Minimatch.prototype.match = function match (f, partial) {
 // out of pattern, then that's fine, as long as all
 // the parts match.
 Minimatch.prototype.matchOne = function (file, pattern, partial) {
-  if (pattern.indexOf(GLOBSTAR) !== -1) {
-    return this._matchGlobstar(file, pattern, partial, 0, 0)
-  }
-  return this._matchOne(file, pattern, partial, 0, 0)
-}
+  var options = this.options
 
-Minimatch.prototype._matchGlobstar = function (file, pattern, partial, fileIndex, patternIndex) {
-  var i
+  this.debug('matchOne',
+    { 'this': this, file: file, pattern: pattern })
 
-  // find first globstar from patternIndex
-  var firstgs = -1
-  for (i = patternIndex; i < pattern.length; i++) {
-    if (pattern[i] === GLOBSTAR) { firstgs = i; break }
-  }
+  this.debug('matchOne', file.length, pattern.length)
 
-  // find last globstar
-  var lastgs = -1
-  for (i = pattern.length - 1; i >= 0; i--) {
-    if (pattern[i] === GLOBSTAR) { lastgs = i; break }
-  }
-
-  var head = pattern.slice(patternIndex, firstgs)
-  var body = partial ? pattern.slice(firstgs + 1) : pattern.slice(firstgs + 1, lastgs)
-  var tail = partial ? [] : pattern.slice(lastgs + 1)
-
-  // check the head
-  if (head.length) {
-    var fileHead = file.slice(fileIndex, fileIndex + head.length)
-    if (!this._matchOne(fileHead, head, partial, 0, 0)) {
-      return false
-    }
-    fileIndex += head.length
-  }
-
-  // check the tail
-  var fileTailMatch = 0
-  if (tail.length) {
-    if (tail.length + fileIndex > file.length) return false
-
-    var tailStart = file.length - tail.length
-    if (this._matchOne(file, tail, partial, tailStart, 0)) {
-      fileTailMatch = tail.length
-    } else {
-      // affordance for stuff like a/**/* matching a/b/
-      if (file[file.length - 1] !== '' ||
-          fileIndex + tail.length === file.length) {
-        return false
-      }
-      tailStart--
-      if (!this._matchOne(file, tail, partial, tailStart, 0)) {
-        return false
-      }
-      fileTailMatch = tail.length + 1
-    }
-  }
-
-  // if body is empty (single ** between head and tail)
-  if (!body.length) {
-    var sawSome = !!fileTailMatch
-    for (i = fileIndex; i < file.length - fileTailMatch; i++) {
-      var f = String(file[i])
-      sawSome = true
-      if (f === '.' || f === '..' ||
-          (!this.options.dot && f.charAt(0) === '.')) {
-        return false
-      }
-    }
-    return partial || sawSome
-  }
-
-  // split body into segments at each GLOBSTAR
-  var bodySegments = [[[], 0]]
-  var currentBody = bodySegments[0]
-  var nonGsParts = 0
-  var nonGsPartsSums = [0]
-  for (var bi = 0; bi < body.length; bi++) {
-    var b = body[bi]
-    if (b === GLOBSTAR) {
-      nonGsPartsSums.push(nonGsParts)
-      currentBody = [[], 0]
-      bodySegments.push(currentBody)
-    } else {
-      currentBody[0].push(b)
-      nonGsParts++
-    }
-  }
-
-  var idx = bodySegments.length - 1
-  var fileLength = file.length - fileTailMatch
-  for (var si = 0; si < bodySegments.length; si++) {
-    bodySegments[si][1] = fileLength -
-      (nonGsPartsSums[idx--] + bodySegments[si][0].length)
-  }
-
-  return !!this._matchGlobStarBodySections(
-    file, bodySegments, fileIndex, 0, partial, 0, !!fileTailMatch
-  )
-}
-
-// return false for "nope, not matching"
-// return null for "not matching, cannot keep trying"
-Minimatch.prototype._matchGlobStarBodySections = function (
-  file, bodySegments, fileIndex, bodyIndex, partial, globStarDepth, sawTail
-) {
-  var bs = bodySegments[bodyIndex]
-  if (!bs) {
-    // just make sure there are no bad dots
-    for (var i = fileIndex; i < file.length; i++) {
-      sawTail = true
-      var f = file[i]
-      if (f === '.' || f === '..' ||
-          (!this.options.dot && f.charAt(0) === '.')) {
-        return false
-      }
-    }
-    return sawTail
-  }
-
-  var body = bs[0]
-  var after = bs[1]
-  while (fileIndex <= after) {
-    var m = this._matchOne(
-      file.slice(0, fileIndex + body.length),
-      body,
-      partial,
-      fileIndex,
-      0
-    )
-    // if limit exceeded, no match. intentional false negative,
-    // acceptable break in correctness for security.
-    if (m && globStarDepth < this.maxGlobstarRecursion) {
-      var sub = this._matchGlobStarBodySections(
-        file, bodySegments,
-        fileIndex + body.length, bodyIndex + 1,
-        partial, globStarDepth + 1, sawTail
-      )
-      if (sub !== false) {
-        return sub
-      }
-    }
-    var f = file[fileIndex]
-    if (f === '.' || f === '..' ||
-        (!this.options.dot && f.charAt(0) === '.')) {
-      return false
-    }
-    fileIndex++
-  }
-  return partial || null
-}
-
-Minimatch.prototype._matchOne = function (file, pattern, partial, fileIndex, patternIndex) {
-  var fi, pi, fl, pl
-  for (
-    fi = fileIndex, pi = patternIndex, fl = file.length, pl = pattern.length
-    ; (fi < fl) && (pi < pl)
-    ; fi++, pi++
-  ) {
+  for (var fi = 0,
+      pi = 0,
+      fl = file.length,
+      pl = pattern.length
+      ; (fi < fl) && (pi < pl)
+      ; fi++, pi++) {
     this.debug('matchOne loop')
     var p = pattern[pi]
     var f = file[fi]
@@ -90504,7 +89977,87 @@ Minimatch.prototype._matchOne = function (file, pattern, partial, fileIndex, pat
     // should be impossible.
     // some invalid regexp stuff in the set.
     /* istanbul ignore if */
-    if (p === false || p === GLOBSTAR) return false
+    if (p === false) return false
+
+    if (p === GLOBSTAR) {
+      this.debug('GLOBSTAR', [pattern, p, f])
+
+      // "**"
+      // a/**/b/**/c would match the following:
+      // a/b/x/y/z/c
+      // a/x/y/z/b/c
+      // a/b/x/b/x/c
+      // a/b/c
+      // To do this, take the rest of the pattern after
+      // the **, and see if it would match the file remainder.
+      // If so, return success.
+      // If not, the ** "swallows" a segment, and try again.
+      // This is recursively awful.
+      //
+      // a/**/b/**/c matching a/b/x/y/z/c
+      // - a matches a
+      // - doublestar
+      //   - matchOne(b/x/y/z/c, b/**/c)
+      //     - b matches b
+      //     - doublestar
+      //       - matchOne(x/y/z/c, c) -> no
+      //       - matchOne(y/z/c, c) -> no
+      //       - matchOne(z/c, c) -> no
+      //       - matchOne(c, c) yes, hit
+      var fr = fi
+      var pr = pi + 1
+      if (pr === pl) {
+        this.debug('** at the end')
+        // a ** at the end will just swallow the rest.
+        // We have found a match.
+        // however, it will not swallow /.x, unless
+        // options.dot is set.
+        // . and .. are *never* matched by **, for explosively
+        // exponential reasons.
+        for (; fi < fl; fi++) {
+          if (file[fi] === '.' || file[fi] === '..' ||
+            (!options.dot && file[fi].charAt(0) === '.')) return false
+        }
+        return true
+      }
+
+      // ok, let's see if we can swallow whatever we can.
+      while (fr < fl) {
+        var swallowee = file[fr]
+
+        this.debug('\nglobstar while', file, fr, pattern, pr, swallowee)
+
+        // XXX remove this slice.  Just pass the start index.
+        if (this.matchOne(file.slice(fr), pattern.slice(pr), partial)) {
+          this.debug('globstar found match!', fr, fl, swallowee)
+          // found a match.
+          return true
+        } else {
+          // can't swallow "." or ".." ever.
+          // can only swallow ".foo" when explicitly asked.
+          if (swallowee === '.' || swallowee === '..' ||
+            (!options.dot && swallowee.charAt(0) === '.')) {
+            this.debug('dot detected!', file, fr, pattern, pr)
+            break
+          }
+
+          // ** swallows a segment, and continue.
+          this.debug('globstar swallow a segment, and continue')
+          fr++
+        }
+      }
+
+      // no match was found.
+      // However, in partial mode, we can't say this is necessarily over.
+      // If there's more *pattern* left, then
+      /* istanbul ignore if */
+      if (partial) {
+        // ran out of file
+        this.debug('\n>>> no match, partial?', file, fr, pattern, pr)
+        if (fr === fl) return true
+      }
+      return false
+    }
 
     // something other than **
     // non-magic patterns just have to match exactly
@@ -90520,6 +90073,17 @@ Minimatch.prototype._matchOne = function (file, pattern, partial, fileIndex, pat
 
     if (!hit) return false
   }
+
+  // Note: ending in / means that we'll get a final ""
+  // at the end of the pattern.  This can only match a
+  // corresponding "" at the end of the file.
+  // If the file ends in /, then it can only match a
+  // a pattern that ends in /, unless the pattern just
+  // doesn't have any more for it. But, a/b/ should *not*
+  // match "a/b/*", even though "" matches against the
+  // [^/]*? pattern, except in partial mode, where it might
+  // simply not be reached yet.
+  // However, a/b/ should still satisfy a/*
 
   // now either we fell off the end of the pattern, or we're done.
   if (fi === fl && pi === pl) {
@@ -105724,39 +105288,12 @@ exports.assertValidPattern = assertValidPattern;
 
 
 // parse a single path portion
-var _a;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AST = void 0;
 const brace_expressions_js_1 = __nccwpck_require__(65192);
 const unescape_js_1 = __nccwpck_require__(9829);
 const types = new Set(['!', '?', '+', '*', '@']);
 const isExtglobType = (c) => types.has(c);
-const isExtglobAST = (c) => isExtglobType(c.type);
-const adoptionMap = new Map([
-    ['!', ['@']],
-    ['?', ['?', '@']],
-    ['@', ['@']],
-    ['*', ['*', '+', '?', '@']],
-    ['+', ['+', '@']],
-]);
-const adoptionWithSpaceMap = new Map([
-    ['!', ['?']],
-    ['@', ['?']],
-    ['+', ['?', '*']],
-]);
-const adoptionAnyMap = new Map([
-    ['!', ['?', '@']],
-    ['?', ['?', '@']],
-    ['@', ['?', '@']],
-    ['*', ['*', '+', '?', '@']],
-    ['+', ['+', '@', '?', '*']],
-]);
-const usurpMap = new Map([
-    ['!', new Map([['!', '@']])],
-    ['?', new Map([['*', '*'], ['+', '*']])],
-    ['@', new Map([['!', '!'], ['?', '?'], ['@', '@'], ['*', '*'], ['+', '+']])],
-    ['+', new Map([['?', '*'], ['*', '*']])],
-]);
 // Patterns that get prepended to bind to the start of either the
 // entire string, or just a single path portion, to prevent dots
 // and/or traversal patterns, when needed.
@@ -105873,7 +105410,7 @@ class AST {
             if (p === '')
                 continue;
             /* c8 ignore start */
-            if (typeof p !== 'string' && !(p instanceof _a && p.#parent === this)) {
+            if (typeof p !== 'string' && !(p instanceof AST && p.#parent === this)) {
                 throw new Error('invalid part: ' + p);
             }
             /* c8 ignore stop */
@@ -105905,7 +105442,7 @@ class AST {
         const p = this.#parent;
         for (let i = 0; i < this.#parentIndex; i++) {
             const pp = p.#parts[i];
-            if (!(pp instanceof _a && pp.type === '!')) {
+            if (!(pp instanceof AST && pp.type === '!')) {
                 return false;
             }
         }
@@ -105933,14 +105470,13 @@ class AST {
             this.push(part.clone(this));
     }
     clone(parent) {
-        const c = new _a(this.type, parent);
+        const c = new AST(this.type, parent);
         for (const p of this.#parts) {
             c.copyIn(p);
         }
         return c;
     }
-    static #parseAST(str, ast, pos, opt, extDepth) {
-        const maxDepth = opt.maxExtglobRecursion ?? 2;
+    static #parseAST(str, ast, pos, opt) {
         let escaping = false;
         let inBrace = false;
         let braceStart = -1;
@@ -105977,15 +105513,11 @@ class AST {
                     acc += c;
                     continue;
                 }
-                const doRecurse = !opt.noext &&
-                    isExtglobType(c) &&
-                    str.charAt(i) === '(' &&
-                    extDepth <= maxDepth;
-                if (doRecurse) {
+                if (!opt.noext && isExtglobType(c) && str.charAt(i) === '(') {
                     ast.push(acc);
                     acc = '';
-                    const ext = new _a(c, ast);
-                    i = _a.#parseAST(str, ext, i, opt, extDepth + 1);
+                    const ext = new AST(c, ast);
+                    i = AST.#parseAST(str, ext, i, opt);
                     ast.push(ext);
                     continue;
                 }
@@ -105997,7 +105529,7 @@ class AST {
         // some kind of extglob, pos is at the (
         // find the next | or )
         let i = pos + 1;
-        let part = new _a(null, ast);
+        let part = new AST(null, ast);
         const parts = [];
         let acc = '';
         while (i < str.length) {
@@ -106028,25 +105560,19 @@ class AST {
                 acc += c;
                 continue;
             }
-            const doRecurse = isExtglobType(c) &&
-                str.charAt(i) === '(' &&
-                /* c8 ignore start - the maxDepth is sufficient here */
-                (extDepth <= maxDepth || (ast && ast.#canAdoptType(c)));
-            /* c8 ignore stop */
-            if (doRecurse) {
-                const depthAdd = ast && ast.#canAdoptType(c) ? 0 : 1;
+            if (isExtglobType(c) && str.charAt(i) === '(') {
                 part.push(acc);
                 acc = '';
-                const ext = new _a(c, part);
+                const ext = new AST(c, part);
                 part.push(ext);
-                i = _a.#parseAST(str, ext, i, opt, extDepth + depthAdd);
+                i = AST.#parseAST(str, ext, i, opt);
                 continue;
             }
             if (c === '|') {
                 part.push(acc);
                 acc = '';
                 parts.push(part);
-                part = new _a(null, ast);
+                part = new AST(null, ast);
                 continue;
             }
             if (c === ')') {
@@ -106068,115 +105594,9 @@ class AST {
         ast.#parts = [str.substring(pos - 1)];
         return i;
     }
-    #canAdoptWithSpace(child) {
-        return this.#canAdopt(child, adoptionWithSpaceMap);
-    }
-    #canAdopt(child, map = adoptionMap) {
-        if (!child ||
-            typeof child !== 'object' ||
-            child.type !== null ||
-            child.#parts.length !== 1 ||
-            this.type === null) {
-            return false;
-        }
-        const gc = child.#parts[0];
-        if (!gc || typeof gc !== 'object' || gc.type === null) {
-            return false;
-        }
-        return this.#canAdoptType(gc.type, map);
-    }
-    #canAdoptType(c, map = adoptionAnyMap) {
-        return !!map.get(this.type)?.includes(c);
-    }
-    #adoptWithSpace(child, index) {
-        const gc = child.#parts[0];
-        const blank = new _a(null, gc, this.options);
-        blank.#parts.push('');
-        gc.push(blank);
-        this.#adopt(child, index);
-    }
-    #adopt(child, index) {
-        const gc = child.#parts[0];
-        this.#parts.splice(index, 1, ...gc.#parts);
-        for (const p of gc.#parts) {
-            if (typeof p === 'object')
-                p.#parent = this;
-        }
-        this.#toString = undefined;
-    }
-    #canUsurpType(c) {
-        const m = usurpMap.get(this.type);
-        return !!(m?.has(c));
-    }
-    #canUsurp(child) {
-        if (!child ||
-            typeof child !== 'object' ||
-            child.type !== null ||
-            child.#parts.length !== 1 ||
-            this.type === null ||
-            this.#parts.length !== 1) {
-            return false;
-        }
-        const gc = child.#parts[0];
-        if (!gc || typeof gc !== 'object' || gc.type === null) {
-            return false;
-        }
-        return this.#canUsurpType(gc.type);
-    }
-    #usurp(child) {
-        const m = usurpMap.get(this.type);
-        const gc = child.#parts[0];
-        const nt = m?.get(gc.type);
-        /* c8 ignore start - impossible */
-        if (!nt)
-            return false;
-        /* c8 ignore stop */
-        this.#parts = gc.#parts;
-        for (const p of this.#parts) {
-            if (typeof p === 'object')
-                p.#parent = this;
-        }
-        this.type = nt;
-        this.#toString = undefined;
-        this.#emptyExt = false;
-    }
-    #flatten() {
-        if (!isExtglobAST(this)) {
-            for (const p of this.#parts) {
-                if (typeof p === 'object')
-                    p.#flatten();
-            }
-        }
-        else {
-            let iterations = 0;
-            let done = false;
-            do {
-                done = true;
-                for (let i = 0; i < this.#parts.length; i++) {
-                    const c = this.#parts[i];
-                    if (typeof c === 'object') {
-                        c.#flatten();
-                        if (this.#canAdopt(c)) {
-                            done = false;
-                            this.#adopt(c, i);
-                        }
-                        else if (this.#canAdoptWithSpace(c)) {
-                            done = false;
-                            this.#adoptWithSpace(c, i);
-                        }
-                        else if (this.#canUsurp(c)) {
-                            done = false;
-                            this.#usurp(c);
-                        }
-                    }
-                }
-            } while (!done && ++iterations < 10);
-        }
-        this.#toString = undefined;
-    }
     static fromGlob(pattern, options = {}) {
-        const ast = new _a(null, undefined, options);
-        _a.#parseAST(pattern, ast, 0, options, 0);
+        const ast = new AST(null, undefined, options);
+        AST.#parseAST(pattern, ast, 0, options);
         return ast;
     }
     // returns the regular expression if there's magic, or the unescaped
@@ -106280,16 +105700,14 @@ class AST {
     // or start or whatever) and prepend ^ or / at the Regexp construction.
     toRegExpSource(allowDot) {
         const dot = allowDot ?? !!this.#options.dot;
-        if (this.#root === this) {
-            this.#flatten();
+        if (this.#root === this)
             this.#fillNegs();
-        }
-        if (!isExtglobAST(this)) {
+        if (!this.type) {
             const noEmpty = this.isStart() && this.isEnd();
             const src = this.#parts
                 .map(p => {
                 const [re, _, hasMagic, uflag] = typeof p === 'string'
-                    ? _a.#parseGlob(p, this.#hasMagic, noEmpty)
+                    ? AST.#parseGlob(p, this.#hasMagic, noEmpty)
                     : p.toRegExpSource(allowDot);
                 this.#hasMagic = this.#hasMagic || hasMagic;
                 this.#uflag = this.#uflag || uflag;
@@ -106348,10 +105766,9 @@ class AST {
             // invalid extglob, has to at least be *something* present, if it's
             // the entire path portion.
             const s = this.toString();
-            const me = this;
-            me.#parts = [s];
-            me.type = null;
-            me.#hasMagic = undefined;
+            this.#parts = [s];
+            this.type = null;
+            this.#hasMagic = undefined;
             return [s, (0, unescape_js_1.unescape)(this.toString()), false, false];
         }
         // XXX abstract out this map method
@@ -106415,14 +105832,11 @@ class AST {
         let escaping = false;
         let re = '';
         let uflag = false;
-        // multiple stars that aren't globstars coalesce into one *
-        let inStar = false;
         for (let i = 0; i < glob.length; i++) {
             const c = glob.charAt(i);
             if (escaping) {
                 escaping = false;
                 re += (reSpecials.has(c) ? '\\' : '') + c;
-                inStar = false;
                 continue;
             }
             if (c === '\\') {
@@ -106441,20 +105855,16 @@ class AST {
                     uflag = uflag || needUflag;
                     i += consumed - 1;
                     hasMagic = hasMagic || magic;
-                    inStar = false;
                     continue;
                 }
             }
             if (c === '*') {
-                if (inStar)
-                    continue;
-                inStar = true;
-                re += noEmpty && /^[*]+$/.test(glob) ? starNoEmpty : star;
+                if (noEmpty && glob === '*')
+                    re += starNoEmpty;
+                else
+                    re += star;
                 hasMagic = true;
                 continue;
-            }
-            else {
-                inStar = false;
             }
             if (c === '?') {
                 re += qmark;
@@ -106467,7 +105877,6 @@ class AST {
     }
 }
 exports.AST = AST;
-_a = AST;
 //# sourceMappingURL=ast.js.map
 
 /***/ }),
@@ -106868,13 +106277,11 @@ class Minimatch {
     isWindows;
     platform;
     windowsNoMagicRoot;
-    maxGlobstarRecursion;
     regexp;
     constructor(pattern, options = {}) {
         (0, assert_valid_pattern_js_1.assertValidPattern)(pattern);
         options = options || {};
         this.options = options;
-        this.maxGlobstarRecursion = options.maxGlobstarRecursion ?? 200;
         this.pattern = pattern;
         this.platform = options.platform || defaultPlatform;
         this.isWindows = this.platform === 'win32';
@@ -107274,8 +106681,7 @@ class Minimatch {
     // out of pattern, then that's fine, as long as all
     // the parts match.
     matchOne(file, pattern, partial = false) {
-        let fileStartIndex = 0;
-        let patternStartIndex = 0;
+        const options = this.options;
         // UNC paths like //?/X:/... can match X:/... and vice versa
         // Drive letters in absolute drive or unc paths are always compared
         // case-insensitively.
@@ -107296,14 +106702,15 @@ class Minimatch {
             const fdi = fileUNC ? 3 : fileDrive ? 0 : undefined;
             const pdi = patternUNC ? 3 : patternDrive ? 0 : undefined;
             if (typeof fdi === 'number' && typeof pdi === 'number') {
-                const [fd, pd] = [
-                    file[fdi],
-                    pattern[pdi],
-                ];
+                const [fd, pd] = [file[fdi], pattern[pdi]];
                 if (fd.toLowerCase() === pd.toLowerCase()) {
                     pattern[pdi] = fd;
-                    patternStartIndex = pdi;
-                    fileStartIndex = fdi;
+                    if (pdi > fdi) {
+                        pattern = pattern.slice(pdi);
+                    }
+                    else if (fdi > pdi) {
+                        file = file.slice(fdi);
+                    }
                 }
             }
         }
@@ -107313,127 +106720,102 @@ class Minimatch {
         if (optimizationLevel >= 2) {
             file = this.levelTwoFileOptimize(file);
         }
-        if (pattern.includes(exports.GLOBSTAR)) {
-            return this.#matchGlobstar(file, pattern, partial, fileStartIndex, patternStartIndex);
-        }
-        return this.#matchOne(file, pattern, partial, fileStartIndex, patternStartIndex);
-    }
-    #matchGlobstar(file, pattern, partial, fileIndex, patternIndex) {
-        const firstgs = pattern.indexOf(exports.GLOBSTAR, patternIndex);
-        const lastgs = pattern.lastIndexOf(exports.GLOBSTAR);
-        const [head, body, tail] = partial ? [
-            pattern.slice(patternIndex, firstgs),
-            pattern.slice(firstgs + 1),
-            [],
-        ] : [
-            pattern.slice(patternIndex, firstgs),
-            pattern.slice(firstgs + 1, lastgs),
-            pattern.slice(lastgs + 1),
-        ];
-        if (head.length) {
-            const fileHead = file.slice(fileIndex, fileIndex + head.length);
-            if (!this.#matchOne(fileHead, head, partial, 0, 0))
-                return false;
-            fileIndex += head.length;
-        }
-        let fileTailMatch = 0;
-        if (tail.length) {
-            if (tail.length + fileIndex > file.length)
-                return false;
-            let tailStart = file.length - tail.length;
-            if (this.#matchOne(file, tail, partial, tailStart, 0)) {
-                fileTailMatch = tail.length;
-            }
-            else {
-                if (file[file.length - 1] !== '' ||
-                    fileIndex + tail.length === file.length) {
-                    return false;
-                }
-                tailStart--;
-                if (!this.#matchOne(file, tail, partial, tailStart, 0))
-                    return false;
-                fileTailMatch = tail.length + 1;
-            }
-        }
-        if (!body.length) {
-            let sawSome = !!fileTailMatch;
-            for (let i = fileIndex; i < file.length - fileTailMatch; i++) {
-                const f = String(file[i]);
-                sawSome = true;
-                if (f === '.' || f === '..' ||
-                    (!this.options.dot && f.startsWith('.'))) {
-                    return false;
-                }
-            }
-            return partial || sawSome;
-        }
-        const bodySegments = [[[], 0]];
-        let currentBody = bodySegments[0];
-        let nonGsParts = 0;
-        const nonGsPartsSums = [0];
-        for (const b of body) {
-            if (b === exports.GLOBSTAR) {
-                nonGsPartsSums.push(nonGsParts);
-                currentBody = [[], 0];
-                bodySegments.push(currentBody);
-            }
-            else {
-                currentBody[0].push(b);
-                nonGsParts++;
-            }
-        }
-        let i = bodySegments.length - 1;
-        const fileLength = file.length - fileTailMatch;
-        for (const b of bodySegments) {
-            b[1] = fileLength - (nonGsPartsSums[i--] + b[0].length);
-        }
-        return !!this.#matchGlobStarBodySections(file, bodySegments, fileIndex, 0, partial, 0, !!fileTailMatch);
-    }
-    #matchGlobStarBodySections(file, bodySegments, fileIndex, bodyIndex, partial, globStarDepth, sawTail) {
-        const bs = bodySegments[bodyIndex];
-        if (!bs) {
-            for (let i = fileIndex; i < file.length; i++) {
-                sawTail = true;
-                const f = file[i];
-                if (f === '.' || f === '..' ||
-                    (!this.options.dot && f.startsWith('.'))) {
-                    return false;
-                }
-            }
-            return sawTail;
-        }
-        const [body, after] = bs;
-        while (fileIndex <= after) {
-            const m = this.#matchOne(file.slice(0, fileIndex + body.length), body, partial, fileIndex, 0);
-            if (m && globStarDepth < this.maxGlobstarRecursion) {
-                const sub = this.#matchGlobStarBodySections(file, bodySegments, fileIndex + body.length, bodyIndex + 1, partial, globStarDepth + 1, sawTail);
-                if (sub !== false)
-                    return sub;
-            }
-            const f = file[fileIndex];
-            if (f === '.' || f === '..' ||
-                (!this.options.dot && f.startsWith('.'))) {
-                return false;
-            }
-            fileIndex++;
-        }
-        return partial || null;
-    }
-    #matchOne(file, pattern, partial, fileIndex, patternIndex) {
-        let fi;
-        let pi;
-        let pl;
-        let fl;
-        for (fi = fileIndex, pi = patternIndex,
-            fl = file.length, pl = pattern.length; fi < fl && pi < pl; fi++, pi++) {
+        this.debug('matchOne', this, { file, pattern });
+        this.debug('matchOne', file.length, pattern.length);
+        for (var fi = 0, pi = 0, fl = file.length, pl = pattern.length; fi < fl && pi < pl; fi++, pi++) {
             this.debug('matchOne loop');
-            let p = pattern[pi];
-            let f = file[fi];
+            var p = pattern[pi];
+            var f = file[fi];
             this.debug(pattern, p, f);
+            // should be impossible.
+            // some invalid regexp stuff in the set.
             /* c8 ignore start */
-            if (p === false || p === exports.GLOBSTAR)
+            if (p === false) {
                 return false;
+            }
             /* c8 ignore stop */
+            if (p === exports.GLOBSTAR) {
+                this.debug('GLOBSTAR', [pattern, p, f]);
+                // "**"
+                // a/**/b/**/c would match the following:
+                // a/b/x/y/z/c
+                // a/x/y/z/b/c
+                // a/b/x/b/x/c
+                // a/b/c
+                // To do this, take the rest of the pattern after
+                // the **, and see if it would match the file remainder.
+                // If so, return success.
+                // If not, the ** "swallows" a segment, and try again.
+                // This is recursively awful.
+                //
+                // a/**/b/**/c matching a/b/x/y/z/c
+                // - a matches a
+                // - doublestar
+                //   - matchOne(b/x/y/z/c, b/**/c)
+                //     - b matches b
+                //     - doublestar
+                //       - matchOne(x/y/z/c, c) -> no
+                //       - matchOne(y/z/c, c) -> no
+                //       - matchOne(z/c, c) -> no
+                //       - matchOne(c, c) yes, hit
+                var fr = fi;
+                var pr = pi + 1;
+                if (pr === pl) {
+                    this.debug('** at the end');
+                    // a ** at the end will just swallow the rest.
+                    // We have found a match.
+                    // however, it will not swallow /.x, unless
+                    // options.dot is set.
+                    // . and .. are *never* matched by **, for explosively
+                    // exponential reasons.
+                    for (; fi < fl; fi++) {
+                        if (file[fi] === '.' ||
+                            file[fi] === '..' ||
+                            (!options.dot && file[fi].charAt(0) === '.'))
+                            return false;
+                    }
+                    return true;
+                }
+                // ok, let's see if we can swallow whatever we can.
+                while (fr < fl) {
+                    var swallowee = file[fr];
+                    this.debug('\nglobstar while', file, fr, pattern, pr, swallowee);
+                    // XXX remove this slice.  Just pass the start index.
+                    if (this.matchOne(file.slice(fr), pattern.slice(pr), partial)) {
+                        this.debug('globstar found match!', fr, fl, swallowee);
+                        // found a match.
+                        return true;
+                    }
+                    else {
+                        // can't swallow "." or ".." ever.
+                        // can only swallow ".foo" when explicitly asked.
+                        if (swallowee === '.' ||
+                            swallowee === '..' ||
+                            (!options.dot && swallowee.charAt(0) === '.')) {
+                            this.debug('dot detected!', file, fr, pattern, pr);
+                            break;
+                        }
+                        // ** swallows a segment, and continue.
+                        this.debug('globstar swallow a segment, and continue');
+                        fr++;
+                    }
+                }
+                // no match was found.
+                // However, in partial mode, we can't say this is necessarily over.
+                /* c8 ignore start */
+                if (partial) {
+                    // ran out of file
+                    this.debug('\n>>> no match, partial?', file, fr, pattern, pr);
+                    if (fr === fl) {
+                        return true;
+                    }
+                }
+                /* c8 ignore stop */
+                return false;
+            }
+            // something other than **
+            // non-magic patterns just have to match exactly
+            // patterns with magic have been turned into regexps.
             let hit;
             if (typeof p === 'string') {
                 hit = f === p;
@@ -107446,17 +106828,38 @@ class Minimatch {
             if (!hit)
                 return false;
         }
+        // Note: ending in / means that we'll get a final ""
+        // at the end of the pattern.  This can only match a
+        // corresponding "" at the end of the file.
+        // If the file ends in /, then it can only match a
+        // a pattern that ends in /, unless the pattern just
+        // doesn't have any more for it. But, a/b/ should *not*
+        // match "a/b/*", even though "" matches against the
+        // [^/]*? pattern, except in partial mode, where it might
+        // simply not be reached yet.
+        // However, a/b/ should still satisfy a/*
+        // now either we fell off the end of the pattern, or we're done.
         if (fi === fl && pi === pl) {
+            // ran out of pattern and filename at the same time.
+            // an exact hit!
             return true;
         }
         else if (fi === fl) {
+            // ran out of file, but still had pattern left.
+            // this is ok if we're doing the match as part of
+            // a glob fs traversal.
             return partial;
         }
         else if (pi === pl) {
+            // ran out of pattern, still have file left.
+            // this is only acceptable if we're on the very last
+            // empty segment of a file with a trailing slash.
+            // a/* should match a/b/
             return fi === fl - 1 && file[fi] === '';
             /* c8 ignore start */
         }
         else {
+            // should be unreachable.
             throw new Error('wtf?');
         }
         /* c8 ignore stop */
@@ -116386,19 +115789,6 @@ function getProxyFetch(destinationUrl) {
 function getApiBaseUrl() {
     return process.env['GITHUB_API_URL'] || 'https://api.github.com';
 }
-function getUserAgentWithOrchestrationId(baseUserAgent) {
-    var _a;
-    const orchId = (_a = process.env['ACTIONS_ORCHESTRATION_ID']) === null || _a === void 0 ? void 0 : _a.trim();
-    if (orchId) {
-        const sanitizedId = orchId.replace(/[^a-z0-9_.-]/gi, '_');
-        const tag = `actions_orchestration_id/${sanitizedId}`;
-        if (baseUserAgent === null || baseUserAgent === void 0 ? void 0 : baseUserAgent.includes(tag))
-            return baseUserAgent;
-        const ua = baseUserAgent ? `${baseUserAgent} ` : '';
-        return `${ua}${tag}`;
-    }
-    return baseUserAgent;
-}
 //# sourceMappingURL=utils.js.map
 ;// CONCATENATED MODULE: ./node_modules/universal-user-agent/index.js
 function getUserAgent() {
@@ -120353,7 +119743,6 @@ const defaults = {
     }
 };
 const GitHub = Octokit.plugin(restEndpointMethods, paginateRest).defaults(defaults);
-
 /**
  * Convience function to correctly format Octokit Options to pass into the constructor.
  *
@@ -120366,11 +119755,6 @@ function getOctokitOptions(token, options) {
     const auth = getAuthString(token, opts);
     if (auth) {
         opts.auth = auth;
-    }
-    // Orchestration ID
-    const userAgent = getUserAgentWithOrchestrationId(opts.userAgent);
-    if (userAgent) {
-        opts.userAgent = userAgent;
     }
     return opts;
 }
