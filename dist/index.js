@@ -120324,6 +120324,8 @@ function getOctokit(token, options, ...additionalPlugins) {
     return new GitHubWithPlugins(getOctokitOptions(token, options));
 }
 //# sourceMappingURL=github.js.map
+// EXTERNAL MODULE: ./node_modules/@sigstore/oci/dist/name.js
+var dist_name = __nccwpck_require__(96666);
 // EXTERNAL MODULE: external "fs/promises"
 var promises_ = __nccwpck_require__(91943);
 var promises_default = /*#__PURE__*/__nccwpck_require__.n(promises_);
@@ -127978,6 +127980,15 @@ const MAX_SUBJECT_COUNT = 1024;
 const MAX_SUBJECT_CHECKSUM_SIZE_BYTES = 512 * MAX_SUBJECT_COUNT;
 const DIGEST_ALGORITHM = 'sha256';
 const HEX_STRING_RE = /^[0-9a-fA-F]+$/;
+// Canonical SHA-2 algorithms and their expected hex digest lengths
+const SUPPORTED_DIGEST_ALGORITHMS = {
+    sha224: 56,
+    sha256: 64,
+    sha384: 96,
+    sha512: 128,
+    sha512_224: 56,
+    sha512_256: 64
+};
 // Returns the subject specified by the action's inputs. The subject may be
 // specified as a path to a file or as a digest. If a path is provided, the
 // file's digest is calculated and returned along with the subject's name. If a
@@ -128059,16 +128070,34 @@ const getSubjectFromPath = async (subjectPath, subjectName) => {
     }
     return digestedSubjects;
 };
+// Parses a subject digest string of the form "algorithm:hex_digest" and
+// validates the algorithm name and hex digest length against the supported
+// canonical in-toto SHA-2 algorithm set.
+const parseSubjectDigest = (input) => {
+    const match = input.match(/^([^:]+):([^:]+)$/);
+    if (!match) {
+        throw new Error('subject-digest must be in the format "algorithm:hex_digest"');
+    }
+    const [, algorithm, digest] = match;
+    const expectedLength = SUPPORTED_DIGEST_ALGORITHMS[algorithm];
+    if (expectedLength === undefined) {
+        throw new Error(`subject-digest has unsupported algorithm "${algorithm}"`);
+    }
+    if (!HEX_STRING_RE.test(digest)) {
+        throw new Error('subject-digest has invalid hex digits');
+    }
+    if (digest.length !== expectedLength) {
+        throw new Error(`subject-digest has invalid length for algorithm "${algorithm}" (expected ${expectedLength}, got ${digest.length})`);
+    }
+    return { algorithm, digest };
+};
 // Returns the subject specified by the digest of a file. The digest is returned
 // along with the subject's name.
 const getSubjectFromDigest = (subjectDigest, subjectName) => {
-    if (!subjectDigest.match(/^sha256:[0-9a-fA-F]{64}$/)) {
-        throw new Error('subject-digest must be in the format "sha256:<hex-digest>"');
-    }
-    const [alg, digest] = subjectDigest.split(':');
+    const { algorithm, digest } = parseSubjectDigest(subjectDigest);
     return {
         name: subjectName,
-        digest: { [alg]: digest }
+        digest: { [algorithm]: digest }
     };
 };
 const getSubjectFromChecksums = async (subjectChecksums) => {
@@ -128432,6 +128461,7 @@ const mute = (str) => `${COLOR_GRAY}${str}${COLOR_DEFAULT}`;
 
 
 
+
 const ATTESTATION_FILE_NAME = 'attestation.json';
 const ATTESTATION_PATHS_FILE_NAME = 'created_attestation_paths.txt';
 /* istanbul ignore next */
@@ -128609,12 +128639,19 @@ const getPredicateForType = async (type, inputs) => {
     }
 };
 // Validate that resolved subjects meet registry push requirements:
-// exactly one subject with a SHA-256 digest.
+// exactly one subject with a valid OCI image name and a SHA-256 digest.
 const validateRegistrySubjects = (subjects) => {
     if (subjects.length !== 1) {
         throw new Error(`push-to-registry requires exactly one subject but ${subjects.length} subjects were resolved`);
     }
     const subject = subjects[0];
+    // Validate that the subject name is a fully qualified OCI image reference
+    try {
+        (0,dist_name.parseImageName)(subject.name);
+    }
+    catch {
+        throw new Error(`push-to-registry requires a valid OCI image name but got: ${subject.name}`);
+    }
     const algorithms = Object.keys(subject.digest);
     const hasNonSHA256 = algorithms.some(alg => alg !== 'sha256');
     if (hasNonSHA256 || !algorithms.includes('sha256')) {

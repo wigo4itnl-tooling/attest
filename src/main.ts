@@ -1,5 +1,6 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
+import { parseImageName } from '@sigstore/oci/dist/name'
 import fs from 'fs/promises'
 import os from 'os'
 import path from 'path'
@@ -273,7 +274,7 @@ const getPredicateForType = async (
 }
 
 // Validate that resolved subjects meet registry push requirements:
-// exactly one subject with a SHA-256 digest.
+// exactly one subject with a valid OCI image name and a SHA-256 digest.
 export const validateRegistrySubjects = (subjects: Subject[]): void => {
   if (subjects.length !== 1) {
     throw new Error(
@@ -282,6 +283,16 @@ export const validateRegistrySubjects = (subjects: Subject[]): void => {
   }
 
   const subject = subjects[0]
+
+  // Validate that the subject name is a fully qualified OCI image reference
+  try {
+    parseImageName(subject.name)
+  } catch {
+    throw new Error(
+      `push-to-registry requires a valid OCI image name but got: ${subject.name}`
+    )
+  }
+
   const algorithms = Object.keys(subject.digest)
   const hasNonSHA256 = algorithms.some(alg => alg !== 'sha256')
 

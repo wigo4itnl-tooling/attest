@@ -102,8 +102,12 @@ See [action.yml](action.yml)
     # runner-provided $GITHUB_ARTIFACTS_LIST environment variable.
     subject-path:
 
-    # SHA256 digest of the subject for the attestation. Must be in the form
-    # "sha256:hex_digest" (e.g. "sha256:abc123..."). At most one of
+    # Digest of the subject for the attestation. Must be in the form
+    # "algorithm:hex_digest" (e.g. "sha256:abc123..."). Supported algorithms
+    # are sha224, sha256, sha384, sha512, sha512_224, and sha512_256
+    # (canonical in-toto names, lowercase only). Only hexadecimal digests
+    # are accepted; npm SRI format is not supported. When "push-to-registry"
+    # is true, the digest algorithm must be sha256. At most one of
     # "subject-path", "subject-digest", or "subject-checksums" may be provided.
     # If none are provided, subjects are discovered from $GITHUB_ARTIFACTS_LIST.
     subject-digest:
@@ -113,9 +117,11 @@ See [action.yml](action.yml)
     subject-name:
 
     # Path to checksums file containing digest and name of subjects for
-    # attestation. At most one of "subject-path", "subject-digest", or
-    # "subject-checksums" may be provided. If none are provided, subjects are
-    # discovered from $GITHUB_ARTIFACTS_LIST.
+    # attestation. Digest algorithm is inferred from hex length (sha256 for 64
+    # characters, sha512 for 128 characters). When "push-to-registry" is true,
+    # all checksums must be sha256. At most one of "subject-path",
+    # "subject-digest", or "subject-checksums" may be provided. If none are
+    # provided, subjects are discovered from $GITHUB_ARTIFACTS_LIST.
     subject-checksums:
 
     # Path to the JSON-formatted SBOM file (SPDX or CycloneDX) to attest.

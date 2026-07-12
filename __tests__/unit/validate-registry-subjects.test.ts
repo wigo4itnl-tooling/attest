@@ -33,6 +33,28 @@ describe('validateRegistrySubjects', () => {
     expect(() => validateRegistrySubjects(subjects)).not.toThrow()
   })
 
+  it('should pass for a valid image name with port', () => {
+    const subjects: Subject[] = [
+      {
+        name: 'myregistry.com:5000/path/to/image',
+        digest: { sha256: 'a'.repeat(64) }
+      }
+    ]
+
+    expect(() => validateRegistrySubjects(subjects)).not.toThrow()
+  })
+
+  it('should pass for docker.io/library/nginx', () => {
+    const subjects: Subject[] = [
+      {
+        name: 'docker.io/library/nginx',
+        digest: { sha256: 'a'.repeat(64) }
+      }
+    ]
+
+    expect(() => validateRegistrySubjects(subjects)).not.toThrow()
+  })
+
   it('should fail when no subjects are provided', () => {
     expect(() => validateRegistrySubjects([])).toThrow(
       /push-to-registry requires exactly one subject but 0 subjects were resolved/
@@ -53,6 +75,45 @@ describe('validateRegistrySubjects', () => {
 
     expect(() => validateRegistrySubjects(subjects)).toThrow(
       /push-to-registry requires exactly one subject but 2 subjects were resolved/
+    )
+  })
+
+  it('should fail when subject name is not a valid OCI image name', () => {
+    const subjects: Subject[] = [
+      {
+        name: 'just-a-name',
+        digest: { sha256: 'a'.repeat(64) }
+      }
+    ]
+
+    expect(() => validateRegistrySubjects(subjects)).toThrow(
+      /push-to-registry requires a valid OCI image name but got: just-a-name/
+    )
+  })
+
+  it('should fail when subject name has no path component', () => {
+    const subjects: Subject[] = [
+      {
+        name: 'ghcr.io/',
+        digest: { sha256: 'a'.repeat(64) }
+      }
+    ]
+
+    expect(() => validateRegistrySubjects(subjects)).toThrow(
+      /push-to-registry requires a valid OCI image name/
+    )
+  })
+
+  it('should fail when subject name contains spaces', () => {
+    const subjects: Subject[] = [
+      {
+        name: 'invalid name with spaces',
+        digest: { sha256: 'a'.repeat(64) }
+      }
+    ]
+
+    expect(() => validateRegistrySubjects(subjects)).toThrow(
+      /push-to-registry requires a valid OCI image name/
     )
   })
 
